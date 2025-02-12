@@ -1,0 +1,106 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// The spec for the evaluator of individuals in this toy project.
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+import "evolution/projects/graphs/joy/data.proto";
+import "evolution/projects/graphs/joy/wall_clock_reference_spec.proto";
+
+// A cost objective to optimize the normalized wall-clock time spent evaluating
+// the compiled function. Compilation will be done with jax.jit, after
+// discarding the first evaluation to discount tracing time.
+message WallClockCostEstimatorSpec {
+  // What values to use as the inputs to the function in order to time it.
+  // The values used will be:
+  //   jnp.linspace(dataset_min, dataset_max, dataset_size, dataset_dtype)
+  // This should be typically much smaller than the dataset used to measure
+  // the precision.
+  double dataset_min = 1;  // Required.
+
+  double dataset_max = 2;  // Required.
+
+  int64 dataset_size = 3;  // Required.
+
+  FloatDTypeSpec dataset_dtype = 5;  // Required.
+
+  // How to stack the function to avoid noise due to very short measurements.
+  // The full stack is compiled.
+  oneof stack_type {
+    PythonForStackSpec python_for_stack = 6;
+    JaxWhileStackSpec jax_while_stack = 7;
+    NoStackSpec no_stack = 13;
+  }
+
+  // If the cost is less than this limit, the limit will be used. This means
+  // that there is no benefit in making the function faster. This is intended
+  // to avoid wasting resources on evolving functions that do nothing or almost
+  // nothing when using NSGA.
+  double min_cost = 9;
+
+  // Each estimate is an upper bound on the wall-clock time needed to run the
+  // function because a CPU may do other things at the same time. To make the
+  // estimate tight, we need to repeat the function evaluation many times and
+  // look at the minimum (see the Python `timeit` module for details). This
+  // field gives a budget for how long to spend doing this (the more time, the
+  // more repeats and the tighter the bound).
+  double budget_seconds = 10;  // Required.
+
+  // The cost is normalized by dividing the wall-clock time of the function in
+  // question by the wall-clock time of a reference function. The wall-clock
+  // time of the reference is computed only once (per worker, per restart), so
+  // it is worth spending a larger budget evaluating it accurately. See
+  // `budget_seconds` field for more details.
+  double reference_budget_seconds = 11;  // Required.
+
+  // The minimum number to repeat the function evaluation, regardless of budget.
+  // Applies to the reference as well.
+  int64 min_num_repeats = 4;  // Required.
+
+  // Which type of reference cost to use to normalize the cost data.
+  ReferenceCostType reference_cost_type = 12;  // Required.
+}
+
+// Stack the function `f` as f(f(f...(f(x))...)) by using a Python for loop.
+// This may incur larger XLA overhead as it will be compiled "unrolled".
+message PythonForStackSpec {
+  // Number of times the function is stacked.
+  int64 depth = 1;  // Required.
+
+  // Prevent underflows and overflows by clipping we clip the output of each
+  // application of `f` in the stack.
+  double min_value = 2;  // Required.
+
+  double max_value = 3;  // Required.
+}
+
+// Don't stack the function at all.
+message NoStackSpec {}
+
+// Stack the function `f` as f(f(f...(f(x))...)) by using a JAX while_loop.
+// This allows the function to be compiled without unrolling.
+message JaxWhileStackSpec {
+  // Number of times the function is stacked.
+  int64 depth = 1;  // Required.
+
+  // Prevent underflows and overflows by clipping we clip the output of each
+  // application of `f` in the stack.
+  double min_value = 2;  // Required.
+
+  double max_value = 3;  // Required.
+}

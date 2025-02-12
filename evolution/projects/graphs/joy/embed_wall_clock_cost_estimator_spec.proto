@@ -1,0 +1,71 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// The spec for the evaluating individuals by embedding the target function in
+// another function.
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+import "evolution/projects/graphs/joy/wall_clock_reference_spec.proto";
+
+message MorsePotentialRangeReducedEmbedFunction {
+  // The number of random atoms to use in the morse potential function.
+  int64 number_of_atoms = 1;  // Required.
+
+  // The seed used to create the random atoms.
+  // It will be shared with all the instances of the wall clock estimator
+  int32 random_seed = 2;  // Required.
+}
+
+// A cost objective to optimize the normalized wall-clock time spent evaluating
+// the compiled function. Compilation will be done with jax.jit, after
+// discarding the first evaluation to discount tracing time.
+message EmbedWallClockCostEstimatorSpec {
+  // How to stack the function to avoid noise due to very short measurements.
+  // The full stack is compiled.
+  oneof embed_function {
+    MorsePotentialRangeReducedEmbedFunction morse_potential_range_reduced = 1;
+  }
+
+  // If the cost is less than this limit, the limit will be used. This means
+  // that there is no benefit in making the function faster. This is intended
+  // to avoid wasting resources on evolving functions that do nothing or almost
+  // nothing when using NSGA.
+  double min_cost = 9;
+
+  // Each estimate is an upper bound on the wall-clock time needed to run the
+  // function because a CPU may do other things at the same time. To make the
+  // estimate tight, we need to repeat the function evaluation many times and
+  // look at the minimum (see the Python `timeit` module for details). This
+  // field gives a budget for how long to spend doing this (the more time, the
+  // more repeats and the tighter the bound).
+  double budget_seconds = 10;  // Required.
+
+  // The cost is normalized by dividing the wall-clock time of the function in
+  // question by the wall-clock time of a reference function. The wall-clock
+  // time of the reference is computed only once (per worker, per restart), so
+  // it is worth spending a larger budget evaluating it accurately. See
+  // `budget_seconds` field for more details.
+  double reference_budget_seconds = 11;  // Required.
+
+  // The minimum number to repeat the function evaluation, regardless of budget.
+  // Applies to the reference as well.
+  int64 min_num_repeats = 4;  // Required.
+
+  // Which type of reference cost to use to normalize the cost data.
+  ReferenceCostType reference_cost_type = 12;  // Required.
+}

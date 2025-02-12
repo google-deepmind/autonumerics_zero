@@ -1,0 +1,50 @@
+###############################################################################
+# Bazel now uses Bzlmod by default to manage external dependencies.
+# Please consider migrating your external dependencies from WORKSPACE to MODULE.bazel.
+#
+# For more details, please check https://github.com/bazelbuild/bazel/issues/18958
+##############################################################################
+module(name = "autonumerics-zero", version = "1.0")
+
+
+bazel_dep(name = "rules_python", version = "1.1.0")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    # We can specify the exact version.
+    python_version = "3.12",
+)
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+
+pip.parse(
+    hub_name = "pip",
+    download_only = True,
+    python_version = "3.12",
+    requirements_lock = "//:requirements_lock.txt",
+)
+
+
+use_repo(pip, "pip")
+
+#http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# Declare the JAX repository.  Replace with the desired JAX version.
+# It's highly recommended to use a specific commit hash for reproducibility.
+#http_archive(
+#    name = "jax", # This is the repository name you'll use in bazel_dep
+#    sha256 = "YOUR_JAX_SHA256_HASH", # **CRITICAL: Replace with the correct SHA**
+#    urls = ["https://github.com/jax-ml/jax/archive/refs/tags/jax-v0.5.0.tar.gz"],
+#)
+
+
+bazel_dep(name = "protobuf", version = "29.3", repo_name = "com_google_protobuf")
+bazel_dep(name = "rules_proto", version = "7.1.0")
+bazel_dep(name = "rules_cc", version = "0.1.0")
+bazel_dep(name = "abseil-cpp", version = "20240722.1")
+bazel_dep(name = "abseil-py", version = "2.1.0")
+bazel_dep(name = "pybind11_bazel", version = "2.13.6")
+bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20240524-1d7a729")
+bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "boost.math", version = "1.83.0.bcr.1")
+

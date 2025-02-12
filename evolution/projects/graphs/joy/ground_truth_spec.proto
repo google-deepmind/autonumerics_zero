@@ -1,0 +1,121 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+message GroundTruthSpec {
+  oneof ground_truth_type {
+    Exp2Float80GroundTruthSpec exp2_float80 = 1;
+    Exp2VettedGroundTruthSpec exp2_vetted = 8;
+    ExpeFloat80GroundTruthSpec expe_float80 = 2;
+    Log2Float80GroundTruthSpec log2_float80 = 3;
+    LogeFloat80GroundTruthSpec loge_float80 = 4;
+    ErfFloat80GroundTruthSpec erf_float80 = 5;
+    ErfcFloat80GroundTruthSpec erfc_float80 = 9;
+    WavyFloat80GroundTruthSpec wavy_float80 = 10;
+    AiryFloat80GroundTruthSpec airy_float80 = 11;
+    BesselFloat80GroundTruthSpec bessel_float80 = 12;
+    Exp2ConvergentGroundTruthSpec exp2_convergent = 6;
+
+    // For testing purposes.
+    RoughTwoXGroundTruthSpec rough_two_x = 7;
+  }
+}
+
+// Calculates the ground truth for 2^x. Internal calculations are done in
+// float80.
+message Exp2Float80GroundTruthSpec {}
+
+// Calculates the ground truth for 2^x. Internal calculations are done in
+// float80 and the ground truth is a Taylor polynomial of order 20 with
+// vetted coefficients.
+message Exp2VettedGroundTruthSpec {}
+
+// Calculates the ground truth for e^x. Internal calculations are done in
+// float80.
+message ExpeFloat80GroundTruthSpec {}
+
+// Calculates the ground truth for log2(x). Internal calculations are done in
+// float80.
+message Log2Float80GroundTruthSpec {}
+
+// Calculates the ground truth for log_e(x). Internal calculations are done in
+// float80.
+message LogeFloat80GroundTruthSpec {}
+
+// Calculates the ground truth for erf(x). Internal calculations are done in
+// float80.
+message ErfFloat80GroundTruthSpec {}
+
+// Calculates the ground truth for erfc(x). Internal calculations are done in
+// float80. Defined on [0, inf). Use on [0,9] to avoid float32 subnormals and
+// [0, 26] to avoid float64 subnormals.
+message ErfcFloat80GroundTruthSpec {}
+
+// Calculates the ground truth for a wavy function with no zeros (a vertically
+// displaced Airy function with scaled inputs). Internal calculations are done
+// in float80.
+message WavyFloat80GroundTruthSpec {
+  // The number of sinusoidal periods in [0,1].
+  int64 num_periods = 1;  // Required.
+}
+
+// Calculates the ground truth for an Airy function function (with scaled
+// input). Internal calculations are done in float80.
+message AiryFloat80GroundTruthSpec {
+  // A scaling factor for the input.
+  int64 input_scaling = 1;  // Required.
+}
+
+// Calculates the 1/2-order modified Bessel function of the first kind. Internal
+// calculations are done in float80.
+message BesselFloat80GroundTruthSpec {}
+
+// Calculation of the ground truth error for 2^x based convergent Taylor series.
+// The ground truth is improved by adding terms to the Taylor series until the
+// error observed does not change much. The calculations of the ground truth
+// values are done without internal rounding (by using rational arithmetic);
+// the inputs and outputs are converted to rationals; the error is calculated
+// as a rational and rounded to a float64 after checking convergence.
+message Exp2ConvergentGroundTruthSpec {
+  // The number of terms to use for approximating the Taylor series of e^x in
+  // the first iteration. This is used in the calculation of 2^x.
+  int64 start_taylor_terms = 1 [default = 10];
+
+  // The number of steps to use for approximating log(2) as a continued
+  // fraction. Each step adds 2 coefficients to the continued fraction. This
+  // is used in the calculation of 2^x.
+  int64 start_log2_steps = 2 [default = 10];
+
+  // The maximum number of iterations. In each iteration, one more term is
+  // added to the Taylor series of e^x and one more step is added to the
+  // continued fraction of log(2).
+  int64 max_iters = 3;  // Required.
+
+  // The error is considered converged if it changes by less than
+  // `tolerance_fraction` for the last `tolerance_iters`. Alternatively, the
+  // error is also considered stable if is smaller than `acceptable_error`.
+  double tolerance_fraction = 4;  // Required.
+
+  int64 tolerance_iters = 5;  // Required.
+
+  double acceptable_error = 6;  // Required.
+}
+
+// Roughly calculates the ground truth for f(x) = 2x. Internal calculations are
+// done in float64.
+message RoughTwoXGroundTruthSpec {}

@@ -1,0 +1,63 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution;
+
+option features.repeated_field_encoding = EXPANDED;
+
+// If adding a new field, AggregateStats() in search_algorithm_stats_util.cc
+// should be updated with logic for how that metric should be aggregated.
+message SearchAlgorithmStats {
+  // The current time.
+  double time_nanos = 1;  // Required.
+
+  // The sum across all individuals seen so far of the `individual_progress`
+  // fields. See `individual_progress` in the Individual proto for details.
+  // Each element of this array includes a different metric for how much of
+  // the experiment has already been completed (e.g. wall clock time, FLOPs,
+  // number of individuals evaluated).
+  //
+  // The first element of this array is special because it is considered to be
+  // the standard measure of "experiment time". That is, if
+  // experiment_progress[0] measures the FLOPs in the experiment so far, then
+  // this will be used to determine at what points in "time" to save
+  // checkpoints, for example.
+  //
+  // When this message belongs to an algorithm that is part of a remote server,
+  // it represents the accumulated progress of workers that have communicated to
+  // this server; in other words, the overall experiment progress is the
+  // element-wise sum of these values across all servers.
+  repeated double experiment_progress = 2;
+
+  // Like `experiment_progress`, but measures how much of the work was done by
+  // workers that had gone out of sync. If
+  // `SearchAlgorithmSpec.discard_out_of_sync` is also true, then
+  // this is the amount of work discarded by the server.
+  repeated double out_of_sync_progress = 3;
+
+  // The maximum value for each fitness seen by this server.
+  repeated double max_fitnesses = 4;
+
+  // The approximate number of distinct Individual.data.hashes[] seen by this
+  // server. This is NOT exact, but an approximation using
+  // //dist_proc/aggregation/public/hllplus.h
+  // This is optional, as some setups do not provide hashes.
+  // If aggregated across multiple servers, we take the MAX, not the SUM.
+  // Each element i corresponds to Individual.data.hashes[i]
+  repeated double num_distinct_hashes = 5
+      [features.repeated_field_encoding = PACKED];
+}

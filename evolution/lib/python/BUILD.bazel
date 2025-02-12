@@ -1,0 +1,106 @@
+load("@pip//:requirements.bzl", "requirement")
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+
+package(default_visibility = ["//visibility:public"])
+
+pybind_extension(
+    name = "deconstructed",
+    srcs = ["deconstructed.cc"],
+    deps = ["//evolution/lib:deconstructed"],
+)
+
+py_library(
+    name = "dir_util",
+    srcs_version = "PY3",
+)
+
+py_library(
+    name = "experiment_snapshots_parsing",
+    srcs = ["experiment_snapshots_parsing.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":printing",
+        "//evolution/lib:individual_py_pb2",
+        "//evolution/lib:snapshot_py_pb2",
+    ],
+)
+
+py_library(
+    name = "experiment_spec_util",
+    srcs = ["experiment_spec_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":types",
+        "//evolution/lib:experiment_spec_py_pb2",
+    ],
+)
+
+pybind_extension(
+    name = "hashing",
+    srcs = ["hashing.cc"],
+    deps = ["//evolution/lib:hashing"],
+)
+
+py_library(
+    name = "log_tracker",
+    srcs = ["log_tracker.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":printing",
+        requirement("numpy"),
+    ],
+)
+
+pybind_extension(
+    name = "population_client_manager",
+    srcs = ["population_client_manager.cc"],
+    deps = [
+        "//evolution/lib:individual_cc_proto",
+        "//evolution/lib:population_client_manager",
+        "//evolution/lib:population_client_manager_spec_cc_proto",
+        "//evolution/lib:search_algorithm_stats_cc_proto",
+        "//evolution/lib:types",
+        # "@pip//protobuf:use_fast_cpp_protos",
+        "@pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+        "@com_google_protobuf//:protobuf",
+        #  "@com_google_protobuf//:use_fast_cpp_protos",
+    ],
+)
+
+py_library(
+    name = "printing",
+    srcs = ["printing.py"],
+    srcs_version = "PY3",
+)
+
+pybind_extension(
+    name = "rng",
+    srcs = ["rng.cc"],
+    deps = [
+        "//evolution/lib:rng",
+    ],
+)
+
+py_library(
+    name = "timed_measurement",
+    srcs = ["timed_measurement.py"],
+    srcs_version = "PY3",
+    deps = ["//evolution/lib:search_algorithm_stats_py_pb2"],
+)
+
+py_library(
+    name = "types",
+    srcs = ["types.py"],
+    srcs_version = "PY3",
+    deps = [
+        requirement("protobuf"),
+    ],
+)
+
+pybind_extension(
+    name = "pastable",
+    srcs = ["pastable.cc"],
+    deps = [
+        "//evolution/lib:pastable",
+    ],
+)

@@ -1,0 +1,193 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution;
+
+import "evolution/lib/population_client_manager_spec.proto";
+import "evolution/lib/population_server_spec.proto";
+
+option features.utf8_validation = NONE;
+
+message ExperimentSpec {
+  repeated PopulationServerSpec remote_servers = 1;  // Required.
+
+  repeated WorkerCollectionSpec worker_collections = 3;  // Must be non-empty.
+
+  // Maximum number of failures in all tasks that can occur before the job is
+  // aborted. (Default: 0, unlimited if -1)
+  int64 worker_max_task_failures = 4 [default = 0];
+
+  // Maximum number of times each individual task is allowed to fail before it
+  // is declared dead and not restarted. (Default: 0, maximum value depends on
+  // task priority, unlimited if -1)
+  int64 worker_max_per_task_failures = 5 [default = 0];
+
+  // A temporary directory that can be deleted at the end. If it doesn't exist,
+  // Necessary if using checkpoints or associated_files.
+  //
+  // Notes:
+  // -You can reuse the same tmp_dir for multiple experiments.
+  // -You can use "#CELL" and/or "#USER" in the dir and they will be
+  // automatically replaced with the correct values.
+  // -If you set associated_files in your IndividualData, your worker code must
+  // place all associated files inside this directory (the infra will check this
+  // as a way to ensure that nothing important is garbage-collected by
+  // accident).
+  string tmp_dir = 6;
+
+  // A path where to store information that we want to keep after the
+  // experiment is done. This is typically information that would be too large
+  // to store in Spanner, such as an entire population.
+  string permanent_dir = 13;
+
+  // How long before the experiment is cancelled. Set to a duration longer than
+  // what you expect the experiment will take. This will result in the deletion
+  // of temporary files and cancellation of jobs with DEADLINE_EXCEEDED.
+  double deadline_hours = 7;  // Required.
+
+  // Accelerator type.
+  string platform = 8 [default = 'cpu'];
+
+  // TPU topology (if platform=="tpu").
+  string tpu_topology = 9 [default = '2x2'];
+
+  // Number of CPU per TPU Chip
+  // Used in launch_util
+  int64 host_cpus_per_tpu_chip = 15;
+
+  // Number of RAM in GB per TPU Chip
+  // Used in launch_util
+  int64 host_ram_per_tpu_chip = 16;
+
+  // Number of tasks per TPU host. -1 means "default"'.
+  int64 tpu_tasks_per_host = 10 [default = -1];
+
+  // Spanner DB. Some worker methods read the spanner_db from here.
+  // As of 2021-07-28, most new methods will read the spanner_db from here.
+  // If needed and not present, an exception will be raised pointing this out.
+  string spanner_db = 11;
+
+  // If set, will use this to attribute experiment costs to a project. If not
+  // set, will prompt the user at launch time.
+  string attribution_url = 17;
+}
+
+message WorkerCollectionSpec {
+  int64 num_workers = 1;  // Required.
+
+  // The priority of the workers in this collection. Note that an
+  // experiment can only start a small number of machines with priority larger
+  // than 100. Typically, the only the population server(s) are run at high
+  // priority (200).
+  int64 priority = 5 [default = 100];
+
+  WorkerSpec worker = 2;  // Required.
+
+  int64 worker_collection_id = 3;  // Required.
+
+  // Must be unique within experiment.
+  string worker_collection_name = 4;
+
+  // The minimum amount of RAM/CPU to use for this worker. If not set, autopilot
+  // uses last known value or starts low and ramps it up until needed.
+  int64 min_ram = 6;
+
+  // This min_cpu field should not be set when is_benchmark_mode is true.
+  int64 min_cpu = 7;
+
+  // If set to true, set a hard limit of CPU usage to 1 (100% on 1 core).
+  bool is_benchmark_mode = 8 [default = false];
+
+  // If set to true, the XLA compiler's cpu-parallel-task-assigner optimization
+  // pass will be disabled.
+  bool disable_cpu_parallel_task_assigner = 9 [default = false];
+
+  // Whether to include the MPM for the ABC circuit design library.
+  bool use_abc_dependency = 10 [default = false];
+
+  // Whether to skip running ABC in a sandbox. Has no effect unless
+  // `use_abc_dependency` is true.
+  bool skip_abc_in_sandbox = 11 [default = true];
+}
+
+message WorkerSpec {
+  PopulationClientManagerSpec client_manager = 1;  // Required.
+
+  // Extensions are used to define the WorkerSpec of each project. For an
+  // example, see ../projects/amlz/experiment_example/experiment_spec.proto
+  extensions 10000000 to 524999999 [verification = UNVERIFIED];
+
+  extensions 525000000 to max
+  [declaration = {
+    number: 525000000,
+    full_name: ".brain.evolution.graphs.joy.TournamentWorkerSpec.ext",
+    type: ".brain.evolution.graphs.joy.TournamentWorkerSpec",
+    repeated: false
+  },
+   declaration = {
+     number: 525000001,
+     full_name: ".brain.evolution.graphs.joy.DistributedWorkerSpec.ext",
+     type: ".brain.evolution.graphs.joy.DistributedWorkerSpec",
+     repeated: false
+   },
+   declaration = {
+     number: 525000002,
+     full_name: ".brain.evolution.ai2.dotv1.FinalWorkerSpec.ext",
+     type: ".brain.evolution.ai2.dotv1.FinalWorkerSpec",
+     repeated: false
+   },
+   declaration = {
+     number: 525000003,
+     full_name: ".brain.evolution.cpp_example.CppExampleWorkerSpec.ext",
+     type: ".brain.evolution.cpp_example.CppExampleWorkerSpec",
+     repeated: false
+   },
+   declaration = {
+     number: 525000004,
+     full_name: ".brain.evolution.mixed_example.MixedExampleWorkerSpec.ext",
+     type: ".brain.evolution.mixed_example.MixedExampleWorkerSpec",
+     repeated: false
+   },
+   declaration = {
+     number: 525000005,
+     full_name: ".brain.evolution.py_example.PyExampleWorkerSpec.ext",
+     type: ".brain.evolution.py_example.PyExampleWorkerSpec",
+     repeated: false
+   },
+   declaration = {
+     number: 525000006,
+     full_name: ".brain.evolution.ai2.dotv2.FinalWorkerSpec.ext",
+     type: ".brain.evolution.ai2.dotv2.FinalWorkerSpec",
+     repeated: false
+   },
+   declaration = {
+     number: 525000007,
+     full_name: ".brain.evolution.ai2.adder.FinalWorkerSpec.ext",
+     type: ".brain.evolution.ai2.adder.FinalWorkerSpec",
+     repeated: false,
+     reserved: true  // No longer in use.
+   },
+   declaration = {
+     number: 525000008,
+     full_name: ".brain.evolution.StandardWorkerSpec.ext",
+     type: ".brain.evolution.StandardWorkerSpec",
+     repeated: false
+   }];
+
+  // Internal. Do not set.
+  string tmp_dir = 3;
+}

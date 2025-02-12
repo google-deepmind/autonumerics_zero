@@ -1,0 +1,90 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// Generator specification.
+
+edition = "2023";
+
+package brain.evolution.graphs;
+
+import "evolution/projects/graphs/graph_spec.proto";
+
+option features.repeated_field_encoding = EXPANDED;
+option features.utf8_validation = NONE;
+
+message GeneratorSpec {
+  // Treat the fields below and the extensions as items in a `oneof` field.
+  // We don't use `oneof` explicitly because proto extensions don't support it.
+  RandomGeneratorSpec random_generator = 1;
+
+  extensions 10000000 to max
+  [verification = UNVERIFIED];
+}
+
+// Specification for a `RandomGenerator` instance.
+//
+// The algorithm proceeds by building the graph from given inputs, adding one
+// intermediate vertex at a time. The given inputs can be the source of an
+// edge. Each new intermediate vertex is connected to a random subset of
+// available existing vertices, matching types. Once connected, the new vertex
+// provides a new potential source of edges to connect to for subsequently
+// added vertices. Once we have added a predetermined number of vertices to
+// the graph, we still need to connect the output vertices, which don't have any
+// in-edges yet, but this may not be possible because of type-matching
+// requirements. Thus, at this point, we check whether the given output vertices
+// can be connected to the existing graph. If they can, we choose connections
+// randomly. If they can't, we retry the whole process until successful.
+message RandomGeneratorSpec {
+  // The Op IDs corresponding to each of the required input vertices, in a
+  // canonical order. These are required to be present and in a given order
+  // for evaluation purposes and therefore corresponding vertices are
+  // guaranteed to be generated. These ops must only have output types, so that
+  // the resulting vertices only have out-edges.
+  repeated string required_input_vertex_op_ids = 1;  // Must be nonempty.
+
+  // The Op IDs corresponding to each of the required output vertices, in a
+  // canonical order. These are required to be present and in a given order
+  // for evaluation purposes and therefore corresponding vertices are
+  // guaranteed to be generated. These ops must only have input types, so that
+  // the resulting vertices only have in-edges.
+  repeated string required_output_vertex_op_ids = 2;  // Must be nonempty.
+
+  // The Op IDs allowed for intermediate vertices.
+  repeated string allowed_op_ids = 3;  // Must be nonempty.
+
+  // The total number of vertices in each graph generated.
+  int64 num_vertices = 4;  // Required.
+
+  // The maximum number of times the generation will be retried until a good
+  // graph is found. -1 means unlimited.
+  int64 max_attempts = 5;  // Required.
+
+  // If set, prunes graphs after generating them. This may reduce the number of
+  // vertices (but see `exact_length` to avoid this).
+  bool connected_only = 6 [default = false];
+
+  // If set, a single graph is generated per experiment, based on the experiment
+  // ID hash. This can be useful if needing to explore near unusual initial
+  // conditions.
+  bool single_graph = 7 [default = false];
+
+  // If set, the graph produced must be of exactly `num_vertices`, even if
+  // `connected_only` is set.
+  bool exact_size = 8 [default = false];
+
+  // op ids that need different inputs, e.g. an AddOp that requires its
+  // source vertices to be different.
+  repeated string op_ids_need_different_inputs = 9;
+}

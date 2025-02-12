@@ -1,0 +1,1011 @@
+load("@pip//:requirements.bzl", "requirement")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_python//python:proto.bzl", "py_proto_library")
+
+package(default_visibility = ["//visibility:public"])
+
+py_library(
+    name = "autonum_translation",
+    srcs_version = "PY3",
+)
+
+py_library(
+    name = "baselines",
+    srcs = ["baselines.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":interpretation",
+        "//evolution/projects/graphs:graph",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "bfloat16_util",
+    srcs = ["bfloat16_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//evolution/lib/python:deconstructed",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "cma_trainer",
+    srcs = ["cma_trainer.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":cma_trainer_spec_py_pb2",
+        ":data",
+        ":early_stopping",
+        ":error_util",
+        ":interpretation",
+        ":jax_dataset",
+        ":trainer",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs:graph",
+        requirement("evojax"),
+        requirement("jax"),
+    ],
+)
+
+proto_library(
+    name = "cma_trainer_spec_proto",
+    srcs = ["cma_trainer_spec.proto"],
+    deps = [
+        ":early_stopping_spec_proto",
+        ":error_util_proto",
+        ":jax_dataset_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "cma_trainer_spec_py_pb2",
+    deps = [":cma_trainer_spec_proto"],
+)
+
+py_library(
+    name = "constant_vertex_collapser",
+    srcs = ["constant_vertex_collapser.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":constant_vertex_collapser_spec_py_pb2",
+        ":data",
+        ":interpretation",
+        "//evolution/lib/python:experiment_snapshots_parsing",
+        "//evolution/projects/graphs:graph",
+        "//evolution/projects/graphs:op",
+    ],
+)
+
+proto_library(
+    name = "constant_vertex_collapser_spec_proto",
+    srcs = ["constant_vertex_collapser_spec.proto"],
+)
+
+py_proto_library(
+    name = "constant_vertex_collapser_spec_py_pb2",
+    deps = [":constant_vertex_collapser_spec_proto"],
+)
+
+py_library(
+    name = "conversions",
+    srcs = ["conversions.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//evolution/lib/python:printing",
+        "//evolution/projects/graphs/joy:data",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "cost_estimator",
+    srcs = ["cost_estimator.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//evolution/projects/graphs:graph",
+        "//evolution/projects/graphs/joy:cost_estimator_spec_py_pb2",
+        "//evolution/projects/graphs/joy:interpretation",
+        "//evolution/projects/graphs/joy:num_constants_cost_estimator",
+        "//evolution/projects/graphs/joy:num_interactions_cost_estimator",
+        "//evolution/projects/graphs/joy:num_transforms_cost_estimator",
+        "//evolution/projects/graphs/joy:wall_clock_cost_estimator",
+    ],
+)
+
+py_library(
+    name = "cost_estimator_impl",
+    srcs = ["cost_estimator_impl.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":interpretation",
+        "//evolution/projects/graphs:graph",
+    ],
+)
+
+proto_library(
+    name = "cost_estimator_spec_proto",
+    srcs = ["cost_estimator_spec.proto"],
+    deps = [
+        ":embed_wall_clock_cost_estimator_spec_proto",
+        ":num_constants_cost_estimator_spec_proto",
+        ":num_interactions_cost_estimator_spec_proto",
+        ":num_transforms_cost_estimator_spec_proto",
+        ":wall_clock_cost_estimator_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "cost_estimator_spec_py_pb2",
+    deps = [":cost_estimator_spec_proto"],
+)
+
+py_library(
+    name = "custom_mutators",
+    srcs = ["custom_mutators.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":custom_mutators_spec_py_pb2",
+        ":data",
+        ":eval_metadata",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs:graph",
+        "//evolution/projects/graphs:graph_manipulation",
+        "//evolution/projects/graphs:mutators",
+        "//evolution/projects/graphs:mutators_spec_py_pb2",
+        "//evolution/projects/graphs:op",
+        "//evolution/projects/graphs:topology",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+proto_library(
+    name = "custom_mutators_spec_proto",
+    srcs = ["custom_mutators_spec.proto"],
+    deps = ["//evolution/projects/graphs:mutators_spec_proto"],
+)
+
+py_proto_library(
+    name = "custom_mutators_spec_py_pb2",
+    deps = [":custom_mutators_spec_proto"],
+)
+
+py_library(
+    name = "data",
+    srcs = ["data.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data_py_pb2",
+        "//evolution/lib/python:printing",
+        "//evolution/projects/graphs:graph",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "dataset",
+    srcs = ["dataset.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":bfloat16_util",
+        ":data",
+        ":data_py_pb2",
+        ":dataset_spec_py_pb2",
+        ":error_util",
+        ":ground_truth",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        requirement("jax"),
+    ],
+)
+
+proto_library(
+    name = "dataset_spec_proto",
+    srcs = ["dataset_spec.proto"],
+    deps = [
+        ":data_proto",
+        ":ground_truth_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "dataset_spec_py_pb2",
+    deps = [":dataset_spec_proto"],
+)
+
+cc_proto_library(
+    name = "data_cc_proto",
+    deps = [":data_proto"],
+)
+
+proto_library(
+    name = "data_proto",
+    srcs = ["data.proto"],
+)
+
+py_proto_library(
+    name = "data_py_pb2",
+    deps = [":data_proto"],
+)
+
+py_library(
+    name = "double_word",
+    srcs = ["double_word.py"],
+    srcs_version = "PY3",
+    deps = [
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "early_stopping",
+    srcs = ["early_stopping.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":early_stopping_spec_py_pb2",
+        "//evolution/lib/python:printing",
+        requirement("jax"),
+    ],
+)
+
+proto_library(
+    name = "early_stopping_spec_proto",
+    srcs = ["early_stopping_spec.proto"],
+)
+
+py_proto_library(
+    name = "early_stopping_spec_py_pb2",
+    deps = [":early_stopping_spec_proto"],
+)
+
+cc_library(
+    name = "eigen_special_functions",
+    deprecation = "This rule probably does not need to be depended on.",
+)
+
+py_library(
+    name = "error_util",
+    srcs = ["error_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":conversions",
+        ":data",
+        ":error_util_py_pb2",
+        ":ground_truth",
+        "//evolution/lib/python:printing",
+        requirement("jax"),
+    ],
+)
+
+proto_library(
+    name = "error_util_proto",
+    srcs = ["error_util.proto"],
+)
+
+py_proto_library(
+    name = "error_util_py_pb2",
+    deps = [":error_util_proto"],
+)
+
+proto_library(
+    name = "eval_metadata_proto",
+    srcs = ["eval_metadata.proto"],
+    deps = [
+        ":data_proto",
+        "//evolution/projects/graphs:graph_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "eval_metadata_py_pb2",
+    deps = [":eval_metadata_proto"],
+)
+
+py_library(
+    name = "eval_metadata",
+    srcs = ["eval_metadata.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":eval_metadata_py_pb2",
+        ":interpretation",
+        "//evolution/lib/python:printing",
+        "//evolution/projects/graphs:graph",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "evaluator",
+    srcs = ["evaluator.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":constant_vertex_collapser",
+        ":cost_estimator",
+        ":data",
+        ":eval_metadata",
+        ":evaluator_spec_py_pb2",
+        ":evaluator_util",
+        ":interpretation",
+        ":trainers",
+        ":validators",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs:evaluator_interface",
+        "//evolution/projects/graphs:graph",
+        "//evolution/projects/graphs:graph_transformer",
+        "//evolution/projects/graphs:learnable_params",
+        requirement("jax"),
+    ],
+)
+
+proto_library(
+    name = "evaluator_spec_proto",
+    srcs = ["evaluator_spec.proto"],
+    deps = [
+        ":constant_vertex_collapser_spec_proto",
+        ":cost_estimator_spec_proto",
+        ":evaluator_util_proto",
+        ":fingerprinter_spec_proto",
+        ":trainer_spec_proto",
+        ":validator_spec_proto",
+        "//evolution/projects/graphs:graph_transformer_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "evaluator_spec_py_pb2",
+    deps = [":evaluator_spec_proto"],
+)
+
+py_library(
+    name = "evaluator_util",
+    srcs = ["evaluator_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":evaluator_util_py_pb2",
+        "//evolution/lib/python:printing",
+    ],
+)
+
+proto_library(
+    name = "evaluator_util_proto",
+    srcs = ["evaluator_util.proto"],
+)
+
+py_proto_library(
+    name = "evaluator_util_py_pb2",
+    deps = [":evaluator_util_proto"],
+)
+
+proto_library(
+    name = "fingerprinter_spec_proto",
+    srcs = ["fingerprinter_spec.proto"],
+    deps = [":dataset_spec_proto"],
+)
+
+py_proto_library(
+    name = "fingerprinter_spec_py_pb2",
+    deps = [":fingerprinter_spec_proto"],
+)
+
+cc_library(
+    name = "float80_ground_truth",
+    srcs = ["float80_ground_truth.cc"],
+    hdrs = ["float80_ground_truth.h"],
+    deps = [
+        ":data_cc_proto",
+        "//evolution/lib:deconstructed",
+        "//evolution/lib:types",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/types:span",
+        "@boost.math",
+    ],
+)
+
+py_library(
+    name = "gauss_newton_trainer",
+    srcs_version = "PY3",
+)
+
+proto_library(
+    name = "gauss_newton_trainer_spec_proto",
+    deprecation = "This rule probably does not need to be depended on.",
+)
+
+py_proto_library(
+    name = "gauss_newton_trainer_spec_py_pb2",
+    deps = [":gauss_newton_trainer_spec_proto"],
+)
+
+py_library(
+    name = "gradient_descent_trainer",
+    srcs_version = "PY3",
+)
+
+proto_library(
+    name = "gradient_descent_trainer_spec_proto",
+    deprecation = "This rule probably does not need to be depended on.",
+)
+
+py_proto_library(
+    name = "gradient_descent_trainer_spec_py_pb2",
+    deps = [":gradient_descent_trainer_spec_proto"],
+)
+
+py_library(
+    name = "graph_examples",
+    srcs = ["graph_examples.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":baselines",
+        ":data",
+        ":interpretation",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs:graph",
+        "//evolution/projects/graphs:op",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "ground_truth",
+    srcs = ["ground_truth.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":ground_truth_spec_py_pb2",
+        ":ulp_util",
+        "//evolution/lib/python:printing",
+        "//evolution/projects/graphs/joy/python:float80_ground_truth",
+        requirement("jax"),
+    ],
+)
+
+proto_library(
+    name = "ground_truth_spec_proto",
+    srcs = ["ground_truth_spec.proto"],
+)
+
+py_proto_library(
+    name = "ground_truth_spec_py_pb2",
+    deps = [":ground_truth_spec_proto"],
+)
+
+py_library(
+    name = "interpretation",
+    srcs = ["interpretation.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs:graph",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "jax_dataset",
+    srcs = ["jax_dataset.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":bfloat16_util",
+        ":data",
+        ":data_py_pb2",
+        ":ground_truth",
+        ":jax_dataset_spec_py_pb2",
+        ":ulp_util",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        requirement("jax"),
+    ],
+)
+
+proto_library(
+    name = "jax_dataset_spec_proto",
+    srcs = ["jax_dataset_spec.proto"],
+    deps = [
+        ":data_proto",
+        ":ground_truth_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "jax_dataset_spec_py_pb2",
+    deps = [":jax_dataset_spec_proto"],
+)
+
+py_proto_library(
+    name = "joy_meta_validation_worker_spec_py_pb2",
+    deps = [":joy_meta_validation_worker_spec_proto"],
+)
+
+proto_library(
+    name = "joy_worker_spec_proto",
+    srcs = ["joy_worker_spec.proto"],
+    deps = [
+        ":evaluator_spec_proto",
+        ":simple_hasher_spec_proto",
+        "//evolution/lib:experiment_spec_proto",
+        "//evolution/projects/graphs:generators_spec_proto",
+        "//evolution/projects/graphs:graph_evolver_spec_proto",
+        "//evolution/projects/graphs:mutators_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "joy_worker_spec_py_pb2",
+    deps = [":joy_worker_spec_proto"],
+)
+
+py_library(
+    name = "meta_validation_worker",
+    srcs = ["meta_validation_worker.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":baselines",
+        ":cost_estimator",
+        ":data",
+        ":eval_metadata",
+        ":interpretation",
+        ":joy_meta_validation_worker_spec_py_pb2",
+        ":search_space",
+        ":validators",
+        "//evolution/lib:experiment_spec_py_pb2",
+        "//evolution/lib:individual_py_pb2",
+        "//evolution/lib:meta_validation_py_pb2",
+        "//evolution/lib:search_algorithm_stats_py_pb2",
+        "//evolution/lib:snapshot_py_pb2",
+        "//evolution/lib:spanner_spec_py_pb2",
+        "//evolution/lib/python:experiment_snapshots_parsing",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        "//evolution/lib/python:spanner_meta_validations_writer",
+        "//evolution/lib/python:types",
+        "//evolution/projects/graphs:graph",
+        "//evolution/projects/graphs:graph_transformer",
+        "//evolution/projects/graphs:metadata_util",
+        "//third_party/py/absl/logging",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "num_constants_cost_estimator",
+    srcs = ["num_constants_cost_estimator.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":cost_estimator_impl",
+        ":num_constants_cost_estimator_spec_py_pb2",
+        "//evolution/lib/python:printing",
+        "//evolution/projects/graphs:graph",
+    ],
+)
+
+proto_library(
+    name = "num_constants_cost_estimator_spec_proto",
+    srcs = ["num_constants_cost_estimator_spec.proto"],
+)
+
+py_proto_library(
+    name = "num_constants_cost_estimator_spec_py_pb2",
+    deps = [":num_constants_cost_estimator_spec_proto"],
+)
+
+py_library(
+    name = "num_interactions_cost_estimator",
+    srcs = ["num_interactions_cost_estimator.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":cost_estimator_impl",
+        ":data",
+        ":num_interactions_cost_estimator_spec_py_pb2",
+        "//evolution/lib/python:printing",
+        "//evolution/projects/graphs:graph",
+    ],
+)
+
+proto_library(
+    name = "num_interactions_cost_estimator_spec_proto",
+    srcs = ["num_interactions_cost_estimator_spec.proto"],
+)
+
+py_proto_library(
+    name = "num_interactions_cost_estimator_spec_py_pb2",
+    deps = [":num_interactions_cost_estimator_spec_proto"],
+)
+
+py_library(
+    name = "num_transforms_cost_estimator",
+    srcs = ["num_transforms_cost_estimator.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":conversions",
+        ":cost_estimator_impl",
+        ":data",
+        ":num_transforms_cost_estimator_spec_py_pb2",
+        "//evolution/projects/graphs:graph",
+        "//evolution/projects/graphs:op",
+    ],
+)
+
+proto_library(
+    name = "num_transforms_cost_estimator_spec_proto",
+    srcs = ["num_transforms_cost_estimator_spec.proto"],
+)
+
+py_proto_library(
+    name = "num_transforms_cost_estimator_spec_py_pb2",
+    deps = [":num_transforms_cost_estimator_spec_proto"],
+)
+
+py_binary(
+    name = "run_worker",
+    srcs = ["run_worker.py"],
+    python_version = "PY3",
+    deps = [
+        ":custom_mutators",
+        ":evaluator",
+        ":joy_worker_spec_py_pb2",
+        ":search_space",
+        ":simple_hasher",
+        "//evolution/lib/python:experiment_spec_util",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs:graph_evolver",
+        "@abseil-py//absl:app",
+        "@abseil-py//absl/flags",
+        "@abseil-py//absl/logging",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "search_space",
+    srcs = ["search_space.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":search_space_arithmetic",
+        ":search_space_base",
+        ":search_space_constants",
+        ":search_space_erf",
+        ":search_space_literals",
+        ":search_space_special",
+        ":search_space_variables",
+    ],
+)
+
+py_library(
+    name = "search_space_arithmetic",
+    srcs = ["search_space_arithmetic.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":search_space_base",
+        "//evolution/projects/graphs:op",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "search_space_base",
+    srcs = ["search_space_base.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        "//evolution/projects/graphs:graph",
+        "//evolution/projects/graphs:op",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "search_space_constants",
+    srcs = ["search_space_constants.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":search_space_base",
+        "//evolution/projects/graphs:op",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "search_space_erf",
+    srcs = ["search_space_erf.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":search_space_base",
+        "//evolution/projects/graphs:op",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "search_space_literals",
+    srcs = ["search_space_literals.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":search_space_base",
+        "//evolution/projects/graphs:op",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "search_space_special",
+    srcs = ["search_space_special.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":search_space_base",
+        "//evolution/projects/graphs:op",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "search_space_test_util",
+    srcs = ["search_space_test_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":evaluator",
+        ":evaluator_spec_py_pb2",
+        ":search_space_base",
+        "//evolution/lib/python:rng",
+        "//evolution/lib/python:types",
+        "//evolution/projects/graphs:mutators",
+        "//evolution/projects/graphs:mutators_spec_py_pb2",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "search_space_variables",
+    srcs = ["search_space_variables.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":search_space_base",
+        "//evolution/lib/python:printing",
+        "//evolution/projects/graphs:op",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "simple_hasher",
+    srcs = ["simple_hasher.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":simple_hasher_spec_py_pb2",
+        "//evolution/projects/graphs:graph",
+        "//evolution/projects/graphs:hasher_interface",
+    ],
+)
+
+proto_library(
+    name = "simple_hasher_spec_proto",
+    srcs = ["simple_hasher_spec.proto"],
+)
+
+py_proto_library(
+    name = "simple_hasher_spec_py_pb2",
+    deps = [":simple_hasher_spec_proto"],
+)
+
+py_library(
+    name = "standard_validator",
+    srcs = ["standard_validator.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":dataset",
+        ":error_util",
+        ":interpretation",
+        ":standard_validator_spec_py_pb2",
+        ":validator",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs:graph",
+        requirement("jax"),
+    ],
+)
+
+proto_library(
+    name = "standard_validator_spec_proto",
+    srcs = ["standard_validator_spec.proto"],
+    deps = [
+        ":dataset_spec_proto",
+        ":error_util_proto",
+    ],
+)
+
+py_proto_library(
+    name = "standard_validator_spec_py_pb2",
+    deps = [":standard_validator_spec_proto"],
+)
+
+py_library(
+    name = "test_util",
+    testonly = True,
+    srcs = ["test_util.py"],
+    srcs_version = "PY3",
+    deps = [requirement("numpy")],
+)
+
+py_library(
+    name = "trainer",
+    srcs = ["trainer.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":interpretation",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs:graph",
+        requirement("jax"),
+    ],
+)
+
+py_library(
+    name = "trainers",
+    srcs = ["trainers.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":cma_trainer",
+        ":trainer",
+        ":trainer_spec_py_pb2",
+        "//evolution/lib/python:rng",
+    ],
+)
+
+proto_library(
+    name = "trainer_spec_proto",
+    srcs = ["trainer_spec.proto"],
+    deps = [":cma_trainer_spec_proto"],
+)
+
+py_proto_library(
+    name = "trainer_spec_py_pb2",
+    deps = [":trainer_spec_proto"],
+)
+
+py_library(
+    name = "ulp_util",
+    srcs = ["ulp_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//evolution/lib/python:deconstructed",
+        "//evolution/projects/graphs/joy:data",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "validator",
+    srcs = ["validator.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":data",
+        ":interpretation",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs:graph",
+    ],
+)
+
+proto_library(
+    name = "validator_spec_proto",
+    srcs = ["validator_spec.proto"],
+    deps = [":standard_validator_spec_proto"],
+)
+
+py_proto_library(
+    name = "validator_spec_py_pb2",
+    deps = [":validator_spec_proto"],
+)
+
+py_library(
+    name = "validators",
+    srcs = ["validators.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":standard_validator",
+        ":validator",
+        ":validator_spec_py_pb2",
+        "//evolution/lib/python:rng",
+    ],
+)
+
+py_library(
+    name = "wall_clock_cost_estimator",
+    srcs = ["wall_clock_cost_estimator.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":cost_estimator_impl",
+        ":data",
+        ":data_py_pb2",
+        ":graph_examples",
+        ":interpretation",
+        ":wall_clock_cost_estimator_spec_py_pb2",
+        ":wall_clock_reference",
+        "//evolution/lib/python:printing",
+        "//evolution/projects/graphs:graph",
+        requirement("jax"),
+    ],
+)
+
+proto_library(
+    name = "wall_clock_cost_estimator_spec_proto",
+    srcs = ["wall_clock_cost_estimator_spec.proto"],
+    deps = [
+        ":data_proto",
+        ":wall_clock_reference_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "wall_clock_cost_estimator_spec_py_pb2",
+    deps = [":wall_clock_cost_estimator_spec_proto"],
+)
+
+py_library(
+    name = "wall_clock_reference",
+    srcs = ["wall_clock_reference.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":wall_clock_reference_spec_py_pb2",
+        "//evolution/lib/python:printing",
+        "@abseil-py//absl/flags",
+    ],
+)
+
+py_library(
+    name = "embed_wall_clock_cost_estimator",
+    srcs = ["embed_wall_clock_cost_estimator.py"],
+    deps = [
+        ":cost_estimator_impl",
+        ":data",
+        ":embed_wall_clock_cost_estimator_spec_py_pb2",
+        ":graph_examples",
+        ":interpretation",
+        ":wall_clock_reference",
+        "//evolution/projects/graphs:graph",
+        "@jax",
+    ],
+)
+
+proto_library(
+    name = "wall_clock_reference_spec_proto",
+    srcs = ["wall_clock_reference_spec.proto"],
+)
+
+proto_library(
+    name = "embed_wall_clock_cost_estimator_spec_proto",
+    srcs = ["embed_wall_clock_cost_estimator_spec.proto"],
+    deps = [":wall_clock_reference_spec_proto"],
+)
+
+py_proto_library(
+    name = "embed_wall_clock_cost_estimator_spec_py_pb2",
+    deps = [":embed_wall_clock_cost_estimator_spec_proto"],
+)
+
+py_proto_library(
+    name = "wall_clock_reference_spec_py_pb2",
+    deps = [":wall_clock_reference_spec_proto"],
+)

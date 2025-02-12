@@ -1,0 +1,13 @@
+load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
+
+package(default_visibility = ["//visibility:public"])
+
+pybind_extension(
+    name = "float80_ground_truth",
+    srcs = ["float80_ground_truth.cc"],
+    deps = [
+        "//evolution/projects/graphs/joy:data_cc_proto",
+        "//evolution/projects/graphs/joy:float80_ground_truth",
+        "@pybind11_protobuf//pybind11_protobuf:native_proto_caster",
+    ],
+)

@@ -1,0 +1,40 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// The spec for the evaluator of individuals in this toy project.
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+// The fitnesses are identical to the objectives.
+message NoObjectivePostprocessing {}
+
+// Post-processes two objectives into a single (output) fitness, assuming that
+// the first of the objectives is more important ("primary"). The secondary
+// objective only matters once a target for the primary has been
+// reached. Namely, the fitness (F) is the following function of the
+// quality objective (Q) and of the cost objective (C).
+//   F = Q  .........................  if Q < quality_threshold
+//       or
+//     = quality_threshold + C  .....  if Q >= quality_threshold
+//
+// Assumes that:
+// -There are exactly two objectives (one quality objective and one cost
+//  objective;
+// -The cost objective is non-negative.
+message ReduceStratifiedObjectivePostprocessing {
+  double quality_threshold = 1;  // Required.
+}

@@ -1,0 +1,49 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// The spec for the evaluator of individuals in this toy project.
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+option features.utf8_validation = NONE;
+
+// A cost estimator to optimize the number of vertices that interact with the
+// inputs. See `Graph.interacting_vertex_ids` for the definition of interacting
+// vertices.
+message NumInteractionsCostEstimatorSpec {
+  // If the number of interactions is fewer than this limit, the limit will be
+  // used. This means that there is no benefit in using any fewer interactions.
+  // If not, there is no limit. Note that this is the *weighted* number of
+  // interactions (i.e. the `op_weights` map is applied before applying this
+  // limit).
+  double min_weighted_interactions = 1;  // Required.
+
+  // If this repeated field is not empty, the following weights are assigned to
+  // each op. All ops must be present, otherwise the code will crash to prevent
+  // accidentally forgetting an op. If empty, all ops count as if having
+  // weight 1.
+  repeated OpWeight op_weights = 2;
+}
+
+// The weight that should be assigned to each op. Ideally, this corresponds to
+// the time cost of the op, but such a time cost may not be defined because of
+// context dependence.
+message OpWeight {
+  string op_id = 1;  // Required.
+
+  double weight = 2;  // Required.
+}

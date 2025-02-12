@@ -1,0 +1,83 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// Population service definition.
+
+// The PopulationServer and PopulationClient use this definition to exchange
+// RPCs.
+
+// This server assumes that workers handle:
+// -Spanner storage
+// -their own recovery from worker pre-emptions
+// -anything that needs search space knowledge (mutation, evaluation, etc.)
+
+// This server provides:
+// -selection algorithms
+// -recovery from server pre-emptions
+// -decent QPS
+
+// It is understood that worker and server are synced to the same CL, so that
+// proto best practices can be ignored in this file.
+
+edition = "2023";
+
+package brain.evolution;
+
+import "evolution/lib/individual.proto";
+import "evolution/lib/search_algorithm_stats.proto";
+import "evolution/lib/server.proto";
+
+service PopulationServerStub {
+  // Calls the server to exchange information about the ongoing search process.
+  // Multiple types of requests (e.g. get individuals, put individuals) can be
+  // bundled within this RPC in order to reduce bandwidth usage and QPS.
+  rpc Communicate(CommunicateRequest) returns (CommunicateResponse) {
+    
+  }
+
+  // Pings the server to assert the worker is active.
+  rpc Ping(PingRequest) returns (PingResponse) {
+    
+  }
+}
+
+message CommunicateRequest {
+  // Individuals to upload to the server. Leave empty if nothing to upload.
+  repeated Individual uploads = 1;
+
+  // Number of individuals to get in the response.
+  int64 num_to_download = 2 [default = 0];
+
+  // Whether to include server algorithm stats in the response.
+  bool get_stats = 3 [default = false];
+}
+
+// Only fields with a matching request will be set in this response.
+message CommunicateResponse {
+  // Data defining an individual and the results of its evaluation.
+  ServerEnums.Status status = 1;  // Required.
+
+  // The length of this list will the value of the `num_to_download` field in
+  // the request. Shorter lists may result if not enough individuals were
+  // available.
+  repeated Individual downloads = 2;
+
+  // This field will only be set if `stats == True` in the request.
+  SearchAlgorithmStats stats = 3;
+}
+
+message PingRequest {}
+
+message PingResponse {}

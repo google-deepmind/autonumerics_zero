@@ -1,0 +1,176 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// Custom mutator specification.
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+import "evolution/projects/graphs/mutators_spec.proto";
+
+option features.utf8_validation = NONE;
+
+message CustomMutatorSpec {
+  extend MutatorSpec {
+    CustomMutatorSpec ext = 471143018;
+  }
+
+  // Treat all below as `oneof`. See comment in `MutatorSpec`.
+  InsertVertexMutatorSpec insert_vertex_mutator = 1;
+  RemoveVertexMutatorSpec remove_vertex_mutator = 2;
+  SizeDependentMutatorSpec size_dependent_mutator = 3;
+  VertexIdMutatorSpec vertex_id_mutator = 4;
+}
+
+// The distance D between vertices with signatures x_i and y_i is
+// D(x, y) = sqrt(sum_i{(x_i-y_i)^2} / N).
+message RmsDistanceSpec {
+  float max_distance = 1;  // Required.
+}
+
+// The distance D between vertices with signatures x_i and y_i is
+// D(x, y) = sum_i{(x_i-y_i)^2} / (epsilon + sum_i(x_i^2) + sum_i(y_i)^2).
+message NormalizedDistanceSpec {
+  float epsilon = 1;  // Required.
+}
+
+// Softmax on ranks:
+// 1) All candidate vertices are assigned a unique rank depending on their
+//    distance to the original source O. Ties are broken randomly.
+// 2) Candidate vertices with zero distance are excluded iff
+//    `exclude_identical` is set. Excluding vertices does not reduce the
+//    rank of the remaining vertices.
+// 3) The probability of transitioning to a vertex of rank R is proportional
+//    to exp(-R/T), where T is the `temperature`.
+message RankSamplingSpec {
+  // Whether mutations to identical source vertices are allowed.
+  bool exclude_identical = 1;  // Required.
+
+  // The softmax temperature.
+  float temperature = 2;  // Required.
+}
+
+// Softmax on distances:
+// 1) Candidate vertices with zero distance are excluded iff
+//    `exclude_identical` is set.
+// 2) The probability of transitioning to a vertex at distance D is
+//    proportional to exp(-D/T), where D is the distance and T is the
+//    temperature.
+message DistanceSamplingSpec {
+  // Whether mutations to identical source vertices are allowed.
+  bool exclude_identical = 1;  // Required.
+
+  // The softmax temperature.
+  float temperature = 2;  // Required.
+}
+
+// A mutator that inserts a connected vertex with minimal damage to the graph.
+// The mutator picks an op O at random and removes an edge E at random. Then, it
+// inserts a new vertex V with the op O where the edge E was, connecting the
+// output of E to old the dest vertex of E. If O has 1 or more inputs, then
+// it connects one input at random to the old src vertex of E. Typically, other
+// inputs are connected randomly (unless the `other_input_ops` option is set).
+// Finally, the graph is pruned; this only causes an effect if O is nonary, as
+// that may leave other vertices disconnected.
+//
+// This mutator only produces connected graphs. It is meant to be used only with
+// other mutators that only produce connected graphs. (In this context, we
+// define a graph to be connected if every vertex is connected to a required
+// output).
+message InsertVertexMutatorSpec {
+  // The Op IDs that this mutator is allowed to insert into the graph.
+  repeated string allowed_op_ids = 1;  // Must be nonempty.
+
+  // The maximum number of vertices a graph can have. If the graph is already
+  // at this number, then no mutation takes place (effective identity).
+  // A value of -1 means "no limit".
+  int64 max_num_vertices = 2;  // Required.
+
+  // If inserting an op O with 2 or more inputs, the first input is connected
+  // to the old source of the removed edge E. Other inputs are connected
+  // randomly unless this field is set. If this field is set, other inputs are
+  // connected from new nonary vertices inserted. This field must indicate
+  // which nonary ops are allowed for this purpose. If using side ops, the
+  // graph may exceed the maximum size by as many as the number of side inputs
+  // that are inserted.
+  repeated string allowed_side_nonary_op_ids = 3;
+  bool log_mutation_id = 4 [default = false];
+
+  // Whether new vertices should have random IDs.
+  bool random_new_ids = 5 [default = false];
+}
+
+// Removes a vertex with little damage. First, randomly picks a vertex V to
+// remove. Suppose V has inputs S_in = {V_in_1, V_in_2, ...} and outputs S_out.
+// We remove V and reconnect other vertices as follows. One vertex V' is
+// picked to replace V as the input to the vertices in S_out. If S_in is
+// not empty, V' is a random choice in S_in. If S_in is empty, V' is a
+// random choice in the whole graph (excluding vertices that would form
+// loops). Once V' is chosen, it is connected to every vertex in V_out. Finally,
+// the graph is pruned; this is only effective if V had more than 1 input.
+//
+// This mutator only produces connected graphs. It is meant to be used only with
+// other mutators that only produce connected graphs. (In this context, we
+// define a graph to be connected if every vertex is connected to a required
+// output).
+message RemoveVertexMutatorSpec {
+  // The minimum number of vertices a graph can have. If the graph is already
+  // at this number, then no mutation takes place (effective identity).
+  // Includes required inputs and outputs.
+  int64 min_num_vertices = 1;  // Required.
+
+  bool log_mutation_id = 2 [default = false];
+}
+
+// A mutator that decides what mutation to do based on the size of the
+// components.
+message SizeDependentMutatorSpec {
+  // The rules are considered in order. The first rule to match its condition
+  // will result in its mutator being applied. Subsequent rules will be skipped.
+  repeated SizeDependentRule rules = 1;
+
+  // The mutator to apply if none of the rules match their conditions.
+  MutatorSpec fallback_mutator = 2;  // Required.
+}
+
+message SizeDependentRule {
+  // The conditions to meet on the size of the first and second parents.
+  SizeDependentCondition condition = 1;  // Required.
+
+  // The mutator to apply if the conditions are met.
+  MutatorSpec mutator = 2;  // Required.
+}
+
+message SizeDependentCondition {
+  // 'first' and 'second' refer to the first and second parents, resp., and
+  // 'total' refers to their sum. Min is inclusive, max is exclusive. If a
+  // field is not set, it means no such restriction is imposed (e.g. if
+  // first_max_condition is not set, it means that the size of the first
+  // parent has no upper limit to match this condition).
+  int64 first_min_size = 1;
+  int64 first_max_size = 2;
+  int64 second_min_size = 3;
+  int64 second_max_size = 4;
+  int64 total_min_size = 5;
+  int64 total_max_size = 6;
+
+  // Whether to reuse the first parent if the second parent is missing.
+  // Can be useful with EdgeRecombinator.single_parent=True.
+  bool allow_single_parent = 7 [default = false];
+}
+
+// Mutates the ID of a random vertex. The new ID is a random string.
+message VertexIdMutatorSpec {}

@@ -1,0 +1,77 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution;
+
+option features.repeated_field_encoding = EXPANDED;
+
+// Methods for converting multiple fitnesses into a single objective.
+message FitnessesReductionSpec {
+  oneof fitnesses_reduction_method {
+    Fitness0OnlyFitnessesReduction fitness0_only = 1;
+    Fitness0ThenFitness1FitnessesReduction fitness0_then_fitness1 = 2;
+    SubsequenceFitnessesReduction subsequence_fitnesses_reduction = 3;
+    OneDimCircuitFitnessesReduction one_dim_circuit_fitnesses_reduction = 4;
+    DiverseCorrectnessCircuitFitnessesReduction
+        diverse_correctness_circuit_fitnesses_reduction = 5;
+    ShapeCircuitFitnessesReduction shape_circuit_fitnesses_reduction = 6;
+  }
+}
+
+// Reduces two fitnesses to a single objective by ignoring all fitnesses
+// except for the first one.
+message Fitness0OnlyFitnessesReduction {}
+
+// Reduces two fitnesses to a single objective as follows:
+// objective = fitnesses(0), if fitnesses(0) < target
+//             target + fitnesses(1), otherwise.
+message Fitness0ThenFitness1FitnessesReduction {
+  double fitness0_target = 1;  // Required.
+
+  // Whether to use -1/fitnesses(1) instead of fitnesses(1). Useful when
+  // fitness1 is negative.
+  bool negate_and_invert_fitness1 = 2 [default = false];
+}
+
+message SubsequenceFitnessesReduction {
+  // The list of indices of the fitnesses to be used.
+  repeated int64 indexes = 1;  // Required.
+}
+
+// A canned fitness to reduce a circuit's correctness, gates, and CPL to a
+// single objective.
+message OneDimCircuitFitnessesReduction {}
+
+// A canned fitness to reduce a circuit's correctness, gates, and CPL to two
+// objectives, in order to evolve its correctness ensuring variability in its
+// shape.
+message DiverseCorrectnessCircuitFitnessesReduction {
+  // Range clamping of the angle. If either limit is not set, that limit is not
+  // applied.
+  double min_theta = 1;
+  double max_theta = 2;
+}
+
+// A canned fitness to reduce a circuit's correctness, gates, and CPL to two
+// objectives that trade the gates and CPL for correct circuits. For incorrect
+// circuits, the maximum number of gates and CPL are used.
+message ShapeCircuitFitnessesReduction {
+  double min_num_gates = 1 [default = 0.0];
+  double max_num_gates = 2;  // Required.
+  double min_cpl = 3 [default = 0.0];
+  double max_cpl = 4;  // Required.
+}

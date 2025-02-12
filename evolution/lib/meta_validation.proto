@@ -1,0 +1,85 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// Protos to store meta-validation results.
+
+edition = "2023";
+
+package brain.evolution;
+
+import "evolution/lib/individual.proto";
+import "evolution/lib/search_algorithm_stats.proto";
+
+option features.repeated_field_encoding = EXPANDED;
+option features.utf8_validation = NONE;
+
+// Contains the results of meta-validating one graph.
+message MetaValidation {
+  // Required. However, to save space, this field is removed before writing to
+  // spanner and re-added after reading.
+  string individual_id = 1;
+
+  // Used in case multiple MetaValidation protos are saved for one individual.
+  // User-determined (it is recommended that this allow identification of the
+  // CL and command line that was used for meta-validation). Required; however,
+  // to save space, this field is removed before writing to spanner and
+  // re-added after reading.
+  string meta_validation_id = 2;
+
+  // Stats at the time the meta-validation was run. Only present if
+  // meta-validating an experiment.
+  SearchAlgorithmStats stats = 3;
+
+  // Optionally include the Individual proto here. This may be desirable when
+  // the meta-validation is over individuals in the current population that may
+  // not have been saved to Spanner.
+  Individual individual = 4;
+
+  // Various sequential measurements made at meta-validation time. Any number of
+  // sequences can be added here.
+  repeated MetaValidationSequence sequences = 5;
+
+  // Various sequential measurements of x,y-points made at meta-validation time.
+  // Any number of sequences can be added here.
+  repeated MetaValidationXYSequence xy_sequences = 6;
+}
+
+// Contains one particular sequence of measurements for a given quantity.
+// E.g. a list of errors on various examples; in this case, we can set
+// key="errors" and values = [error0, error1, error2, ...].
+message MetaValidationSequence {
+  // The key is an arbitrary string unique to this measurement. Should describe
+  // the measurement.
+  string key = 1;  // Required.
+
+  // Any set of values. The length can be different for different measurements.
+  repeated double values = 2;
+}
+
+// Contains one particular sequence of (x, y) measurements for a given quantity.
+// E.g. the return as a function of training episodes; in this case, we can
+// set key="return" and
+// yvalues = [return after 100 episodes, return after 200 episodes, ...].
+// xvalues = [100, 200, ...]
+message MetaValidationXYSequence {
+  // The key is an arbitrary string unique to this measurement. Should describe
+  // the measurement. Can also contain information such as the repeat/random
+  // seed, etc. E.g. "return_repeat1".
+  string key = 1;  // Required.
+
+  // Any set of values. The length can be different for different measurements.
+  repeated double xvalues = 2;
+  repeated double yvalues = 3;
+}

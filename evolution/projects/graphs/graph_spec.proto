@@ -1,0 +1,55 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// A proto to represent a graph, for serialization purposes.
+
+edition = "2023";
+
+package brain.evolution.graphs;
+
+option features.utf8_validation = NONE;
+
+message GraphProto {
+  repeated VertexProto vertices = 1;
+  repeated string required_input_vertex_ids = 2;
+  repeated string required_output_vertex_ids = 3;
+  // The serialized metadata of a graph.
+  bytes metadata = 4;
+}
+
+message VertexProto {
+  string vertex_id = 1;
+  string op_id = 2;
+
+  // The serialized params object. If the op does not have params, this should
+  // be left unset, otherwise it is required and must be non-empty.
+  bytes evolvable_params = 4;
+  repeated ConnectionProto connections = 3;
+}
+
+message ConnectionProto {
+  string in_edge_id = 1;  // Required.
+
+  string src_vertex_id = 2;  // Required.
+}
+
+// A pair of vertices, representing a required input and a required output.
+message InputOutputPair {
+  // The index of the required input.
+  int64 required_input_index = 1;
+
+  // The index of the required output.
+  int64 required_output_index = 2;
+}

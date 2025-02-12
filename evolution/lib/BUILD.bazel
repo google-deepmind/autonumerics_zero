@@ -1,0 +1,590 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_python//python:proto.bzl", "py_proto_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "candidate",
+    srcs = ["candidate.cc"],
+    hdrs = ["candidate.h"],
+    deps = [
+        ":individual_cc_proto",
+        ":types",
+    ],
+)
+
+cc_library(
+    name = "current_time",
+    srcs = ["current_time.cc"],
+    hdrs = ["current_time.h"],
+    deps = [
+        ":types",
+        "@abseil-cpp//absl/time",
+    ],
+)
+
+cc_library(
+    name = "deconstructed",
+    srcs = ["deconstructed.cc"],
+    hdrs = ["deconstructed.h"],
+    deps = [
+        ":types",
+        "@abseil-cpp//absl/base",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
+    ],
+)
+
+proto_library(
+    name = "experiment_spec_proto",
+    srcs = ["experiment_spec.proto"],
+    deps = [
+        ":population_client_manager_spec_proto",
+        ":population_server_spec_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "experiment_spec_cc_proto",
+    deps = [":experiment_spec_proto"],
+)
+
+py_proto_library(
+    name = "experiment_spec_py_pb2",
+    deps = [":experiment_spec_proto"],
+)
+
+cc_library(
+    name = "fitnesses_reduction",
+    srcs = ["fitnesses_reduction.cc"],
+    hdrs = ["fitnesses_reduction.h"],
+    deps = [
+        ":fitnesses_reduction_spec_cc_proto",
+        ":individual_cc_proto",
+        ":types",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+    ],
+)
+
+proto_library(
+    name = "fitnesses_reduction_spec_proto",
+    srcs = ["fitnesses_reduction_spec.proto"],
+)
+
+py_proto_library(
+    name = "fitnesses_reduction_spec_py_pb2",
+    deps = [":fitnesses_reduction_spec_proto"],
+)
+
+cc_proto_library(
+    name = "fitnesses_reduction_spec_cc_proto",
+    deps = [":fitnesses_reduction_spec_proto"],
+)
+
+cc_library(
+    name = "hashing",
+    srcs = ["hashing.cc"],
+    hdrs = ["hashing.h"],
+    deps = [
+        ":types",
+        "@abseil-cpp//absl/hash",
+        "@abseil-cpp//absl/log:check",
+    ],
+)
+
+cc_library(
+    name = "id_generator",
+    srcs = ["id_generator.cc"],
+    hdrs = ["id_generator.h"],
+    deps = [
+        ":hashing",
+        ":rng",
+        ":types",
+        "@abseil-cpp//absl/hash",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+proto_library(
+    name = "individual_proto",
+    srcs = ["individual.proto"],
+)
+
+cc_proto_library(
+    name = "individual_cc_proto",
+    deps = [":individual_proto"],
+)
+
+py_proto_library(
+    name = "individual_py_pb2",
+    deps = [":individual_proto"],
+)
+
+cc_library(
+    name = "individuals_writer",
+    hdrs = ["individuals_writer.h"],
+    deps = [
+        ":individual_cc_proto",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
+proto_library(
+    name = "meta_validation_proto",
+    srcs = ["meta_validation.proto"],
+    deps = [
+        ":individual_proto",
+        ":search_algorithm_stats_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "meta_validation_cc_proto",
+    deps = [":meta_validation_proto"],
+)
+
+py_proto_library(
+    name = "meta_validation_py_pb2",
+    deps = [":meta_validation_proto"],
+)
+
+cc_library(
+    name = "mocking",
+    hdrs = ["mocking.h"],
+)
+
+cc_library(
+    name = "nsga2_search_algorithm",
+    srcs = ["nsga2_search_algorithm.cc"],
+    hdrs = ["nsga2_search_algorithm.h"],
+    deps = [
+        ":candidate",
+        ":current_time",
+        ":fitnesses_reduction",
+        ":individual_cc_proto",
+        ":mocking",
+        ":nsga2_search_algorithm_spec_cc_proto",
+        ":nsga2_search_algorithm_state_cc_proto",
+        ":nsga2_util",
+        ":population_server_cc_proto",
+        ":rng",
+        ":search_algorithm",
+        ":search_algorithm_cc_proto",
+        ":search_algorithm_stats_cc_proto",
+        ":types",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/log:check",
+    ],
+)
+
+proto_library(
+    name = "nsga2_search_algorithm_spec_proto",
+    srcs = ["nsga2_search_algorithm_spec.proto"],
+    deps = [
+        ":fitnesses_reduction_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "nsga2_search_algorithm_spec_py_pb2",
+    deps = [":nsga2_search_algorithm_spec_proto"],
+)
+
+cc_proto_library(
+    name = "nsga2_search_algorithm_spec_cc_proto",
+    deps = [":nsga2_search_algorithm_spec_proto"],
+)
+
+proto_library(
+    name = "nsga2_search_algorithm_state_proto",
+    srcs = ["nsga2_search_algorithm_state.proto"],
+    deps = [":individual_proto"],
+)
+
+cc_proto_library(
+    name = "nsga2_search_algorithm_state_cc_proto",
+    deps = [":nsga2_search_algorithm_state_proto"],
+)
+
+cc_library(
+    name = "nsga2_util",
+    srcs = ["nsga2_util.cc"],
+    hdrs = ["nsga2_util.h"],
+    deps = [
+        ":candidate",
+        ":individual_cc_proto",
+        ":population_server_cc_proto",
+        "@abseil-cpp//absl/log:check",
+    ],
+)
+
+cc_library(
+    name = "pastable",
+    srcs = ["pastable.cc"],
+    hdrs = ["pastable.h"],
+    deps = [
+        "@abseil-cpp//absl/log:check",
+    ],
+)
+
+cc_library(
+    name = "population_client",
+    srcs = ["population_client.cc"],
+    hdrs = ["population_client.h"],
+    deps = [
+        ":current_time",
+        ":id_generator",
+        ":individual_cc_proto",
+        ":individuals_writer",
+        ":mocking",
+        ":population_client_spec_cc_proto",
+        ":population_server",
+        ":population_server_cc_proto",
+        ":population_server_spec_cc_proto",
+        ":rng",
+        ":search_algorithm_stats_cc_proto",
+        ":server_proto_cc_proto",
+        ":types",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/strings",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
+cc_library(
+    name = "population_client_manager",
+    srcs = ["population_client_manager.cc"],
+    hdrs = ["population_client_manager.h"],
+    deps = [
+        ":individual_cc_proto",
+        ":population_client",
+        ":population_client_manager_spec_cc_proto",
+        ":printing",
+        ":rng",
+        ":search_algorithm_stats_cc_proto",
+        ":search_algorithm_stats_util",
+        ":types",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/random:distributions",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
+    ],
+)
+
+proto_library(
+    name = "population_client_spec_proto",
+    srcs = ["population_client_spec.proto"],
+)
+
+cc_proto_library(
+    name = "population_client_spec_cc_proto",
+    deps = [":population_client_spec_proto"],
+)
+
+py_proto_library(
+    name = "population_client_spec_py_pb2",
+    deps = [":population_client_spec_proto"],
+)
+
+proto_library(
+    name = "population_client_manager_spec_proto",
+    srcs = ["population_client_manager_spec.proto"],
+    deps = [
+        ":population_client_spec_proto",
+        ":population_server_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "population_client_manager_spec_py_pb2",
+    deps = [":population_client_manager_spec_proto"],
+)
+
+cc_proto_library(
+    name = "population_client_manager_spec_cc_proto",
+    deps = [":population_client_manager_spec_proto"],
+)
+
+cc_library(
+    name = "population_server",
+    srcs = ["population_server.cc"],
+    hdrs = ["population_server.h"],
+    deps = [
+        ":current_time",
+        ":id_generator",
+        ":individual_cc_proto",
+        ":mocking",
+        ":population_server_cc_proto",
+        ":population_server_search_algorithms",
+        ":population_server_spec_cc_proto",
+        ":printing",
+        ":rng",
+        ":search_algorithm",
+        ":search_algorithm_stats_cc_proto",
+        ":server_proto_cc_proto",
+        ":snapshot_cc_proto",
+        ":types",
+        "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/synchronization",
+        "@abseil-cpp//absl/time",
+    ],
+)
+
+proto_library(
+    name = "population_server_proto",
+    srcs = ["population_server.proto"],
+    deps = [
+        ":individual_proto",
+        ":search_algorithm_stats_proto",
+        ":server_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "population_server_cc_proto",
+    deps = [":population_server_proto"],
+)
+
+cc_library(
+    name = "population_server_search_algorithms",
+    srcs = ["population_server_search_algorithms.cc"],
+    hdrs = ["population_server_search_algorithms.h"],
+    deps = [
+        ":nsga2_search_algorithm",
+        ":random_search_algorithm",
+        ":search_algorithm",
+        ":search_algorithm_spec_cc_proto",
+        ":types",
+        "@abseil-cpp//absl/log",
+    ],
+)
+
+proto_library(
+    name = "population_server_spec_proto",
+    srcs = ["population_server_spec.proto"],
+    deps = [
+        ":search_algorithm_spec_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "population_server_spec_cc_proto",
+    deps = [":population_server_spec_proto"],
+)
+
+py_proto_library(
+    name = "population_server_spec_py_pb2",
+    deps = [":population_server_spec_proto"],
+)
+
+cc_library(
+    name = "printing",
+    hdrs = ["printing.h"],
+)
+
+cc_library(
+    name = "random_search_algorithm",
+    srcs = ["random_search_algorithm.cc"],
+    hdrs = ["random_search_algorithm.h"],
+    deps = [
+        ":current_time",
+        ":individual_cc_proto",
+        ":mocking",
+        ":population_server_cc_proto",
+        ":random_search_algorithm_spec_cc_proto",
+        ":random_search_algorithm_state_cc_proto",
+        ":rng",
+        ":search_algorithm",
+        ":types",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/log:check",
+    ],
+)
+
+proto_library(
+    name = "random_search_algorithm_state_proto",
+    srcs = ["random_search_algorithm_state.proto"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":individual_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "random_search_algorithm_state_cc_proto",
+    visibility = ["//visibility:private"],
+    deps = [":random_search_algorithm_state_proto"],
+)
+
+py_proto_library(
+    name = "random_search_algorithm_state_py_pb2",
+    deps = [":random_search_algorithm_state_proto"],
+)
+
+proto_library(
+    name = "random_search_algorithm_spec_proto",
+    srcs = ["random_search_algorithm_spec.proto"],
+)
+
+cc_proto_library(
+    name = "random_search_algorithm_spec_cc_proto",
+    deps = [":random_search_algorithm_spec_proto"],
+)
+
+py_proto_library(
+    name = "random_search_algorithm_spec_py_pb2",
+    deps = [":random_search_algorithm_spec_proto"],
+)
+
+cc_library(
+    name = "rng",
+    srcs = ["rng.cc"],
+    hdrs = ["rng.h"],
+    deps = [
+        ":hashing",
+        ":types",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/random",
+        "@abseil-cpp//absl/random:distributions",
+        "@abseil-cpp//absl/time",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "search_algorithm",
+    srcs = ["search_algorithm.cc"],
+    hdrs = ["search_algorithm.h"],
+    deps = [
+        ":current_time",
+        ":individual_cc_proto",
+        ":mocking",
+        ":printing",
+        ":search_algorithm_cc_proto",
+        ":search_algorithm_spec_cc_proto",
+        ":search_algorithm_stats_cc_proto",
+        ":search_algorithm_stats_util",
+        ":types",
+        "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/synchronization",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+proto_library(
+    name = "search_algorithm_proto",
+    srcs = ["search_algorithm.proto"],
+    visibility = ["//visibility:private"],
+    deps = [":search_algorithm_stats_proto"],
+)
+
+cc_proto_library(
+    name = "search_algorithm_cc_proto",
+    visibility = ["//visibility:private"],
+    deps = [":search_algorithm_proto"],
+)
+
+py_proto_library(
+    name = "search_algorithm_py_pb2",
+    deps = [":search_algorithm_proto"],
+)
+
+proto_library(
+    name = "search_algorithm_spec_proto",
+    srcs = ["search_algorithm_spec.proto"],
+    deps = [
+        ":nsga2_search_algorithm_spec_proto",
+        ":random_search_algorithm_spec_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "search_algorithm_spec_cc_proto",
+    deps = [":search_algorithm_spec_proto"],
+)
+
+py_proto_library(
+    name = "search_algorithm_spec_py_pb2",
+    deps = [":search_algorithm_spec_proto"],
+)
+
+cc_library(
+    name = "search_algorithm_stats_util",
+    srcs = ["search_algorithm_stats_util.cc"],
+    hdrs = ["search_algorithm_stats_util.h"],
+    deps = [
+        ":search_algorithm_stats_cc_proto",
+        ":types",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+proto_library(
+    name = "search_algorithm_stats_proto",
+    srcs = ["search_algorithm_stats.proto"],
+)
+
+cc_proto_library(
+    name = "search_algorithm_stats_cc_proto",
+    deps = [":search_algorithm_stats_proto"],
+)
+
+py_proto_library(
+    name = "search_algorithm_stats_py_pb2",
+    deps = [":search_algorithm_stats_proto"],
+)
+
+proto_library(
+    name = "server_proto",
+    srcs = ["server.proto"],
+)
+
+cc_proto_library(
+    name = "server_proto_cc_proto",
+    deps = [":server_proto"],
+)
+
+proto_library(
+    name = "snapshot_proto",
+    srcs = ["snapshot.proto"],
+    deps = [
+        ":individual_proto",
+        ":search_algorithm_stats_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "snapshot_cc_proto",
+    deps = [":snapshot_proto"],
+)
+
+py_proto_library(
+    name = "snapshot_py_pb2",
+    deps = [":snapshot_proto"],
+)
+
+cc_library(
+    name = "types",
+    hdrs = ["types.h"],
+    deps = [
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
+        "@com_google_protobuf//:protobuf",
+    ],
+)

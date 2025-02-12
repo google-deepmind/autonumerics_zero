@@ -1,0 +1,42 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution;
+
+import "evolution/lib/search_algorithm_stats.proto";
+
+option features.repeated_field_encoding = EXPANDED;
+
+message LockedSearchAlgorithmState {
+  // The serialized contents of the thread-compatible algorithm held by the
+  // LockecPopulationServerAlgorithm object.
+  bytes thread_compatible_algorithm_state = 1;  // Required.
+
+  SearchAlgorithmStats stats = 2;  // Required.
+
+  double last_fitness_improvement_at = 5;  // Required.
+
+  // The serialized content of
+  // dist_proc::aggregation::HyperLogLogPlus num_distinct_hash_estimator_
+  // Estimator for the number of distinct hashes seen so far.
+  repeated bytes num_distinct_hashes_estimator_states = 3;
+  int64 search_restart_nanos = 4;  // Required.
+
+  int64 queued_search_restart_nanos = 6;  // Required.
+
+  repeated double search_restart_experiment_progress = 7;
+}

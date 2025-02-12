@@ -1,0 +1,46 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// The spec for the CmaTrainer.
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+// The early stopping mechanism will monitor a quantity `Q` for signs of
+// diminishing returns during the training. Typically Q is the training error.
+message EarlyStoppingSpec {
+  // The amount of improvement in Q required to prevent early stopping. One of
+  // these two is required.
+  double required_absolute_improvement = 1;
+  double required_fractional_improvement = 2;
+
+  // The minimum number of iterations before early stopping can be triggered.
+  int64 min_iters = 3;  // Required.
+
+  // Determines the period over which the required improvement should take
+  // place. Given an `max_no_improvement_iters_fraction` F and a current
+  // number of itereations K, if the required improvement was not met in
+  // the last F * K iterations, early stopping is triggered.
+  double max_no_improvement_iters_fraction = 4;  // Required.
+
+  // These quantities define the expected behavior of the quantity Q.
+  // The `asymptotic_value` Q_a indicates that Q --> Q_a if the training
+  // were to converge to zero error.  If `from_above` is true,
+  // then Q >= Q_a at all times, otherwise Q <= Q_a at all timmes.
+  double asymptotic_value = 5;  // Required.
+
+  bool from_above = 6;  // Required.
+}

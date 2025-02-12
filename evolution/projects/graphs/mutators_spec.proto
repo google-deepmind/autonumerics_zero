@@ -1,0 +1,119 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// Mutator specification.
+
+edition = "2023";
+
+package brain.evolution.graphs;
+
+option features.repeated_field_encoding = EXPANDED;
+option features.utf8_validation = NONE;
+
+message MutatorSpec {
+  // Treat the fields below and the extensions as items in a `oneof` field.
+  // We don't use `oneof` explicitly because proto extensions don't support it.
+  RandomChoiceMutatorSpec random_choice_mutator = 3;
+  EdgeMutatorSpec edge_mutator = 5;
+  RetryUntilFunctionalChangeMutatorSpec retry_until_functional_change_mutator =
+      7;
+  FailMutatorSpec fail_mutator = 17;
+
+  extensions 10000000 to max
+  [verification = UNVERIFIED];
+}
+
+// A mutator that randomly applies a mutator from a list.
+message RandomChoiceMutatorSpec {
+  // One of these will be applied, randomly selected for each mutation event.
+  repeated RandomChoiceMutatorElement elements = 1;  // Must be non-empty.
+}
+
+message RandomChoiceMutatorElement {
+  // A dependent mutator to apply.
+  MutatorSpec mutator = 1;  // Required.
+
+  // The probability of applying the mutator in this element will be
+  // proportional to this weight.
+  double weight = 2 [default = 1.0];
+}
+// Specification for an `EdgeMutator` instance.
+//
+// The mutation consists on disconnecting the sources of K edges. After that,
+// those "dangling" edges are reconnected, one at a time, subject to the
+// constraint that no loops should be formed and types should match. A solution
+// will always be found.
+message EdgeMutatorSpec {
+  // The number of edges to modify.
+  int64 num_edges_to_replace = 1;  // Required.
+
+  // The group of edges that we don't want to affect during a mutation.
+  repeated EdgeGroup frozen_edge_groups = 2;
+
+  // After edge mutation, some vertices could be left with no out edges
+  // ("out-missing"). If this flag is true, for each such vertex V, we try
+  // to find an existing edge E whose
+  // 1) source vertex has more than 1 outputs (so that after disconnecting with
+  //    E, this source vertex will not become out-missing)
+  // 2) dest type matches V's out type
+  // 3) dest vertex does not forward connect to V (to avoid loop)
+  // If such edge exists, we reconnect edge E source to V's output.
+  bool reconnect_out_missing_vertices = 4 [default = false];
+
+  bool connected_only = 3;
+}
+
+// Identifies a group of edges by source and destination vertex ids.
+message EdgeGroup {
+  // A Regex to be used to identify the source vertexes of edges.
+  // If not set, it's assumed to be '.*'
+  string src_vertex_id_re = 1;
+
+  // A Regex to be used to identify the destination vertexes of edges.
+  // If not set, it's assumed to be '.*'
+  string dest_vertex_id_re = 2;
+
+  // The index of the list of incoming edges of the destination vertex.
+  // If not set, assume it's all inputs.
+  int32 dest_vertex_in_index = 3;
+}
+
+// A meta-mutator that repeats a mutator until there is functional change.
+message RetryUntilFunctionalChangeMutatorSpec {
+  // The mutator that will be retried.
+  MutatorSpec mutator = 1;
+
+  // If true, mutations are accumulated until a functional change is achieved:
+  //   child = parent
+  //   while (function(child) == function(parent)):
+  //     child = mutate(child)
+  // Otherwise, mutations are attempted on the parent until a functional change:
+  //   child = parent
+  //   while (function(child) == function(parent)):
+  //     child = mutate(parent)
+
+  bool accumulate_mutations = 2;
+
+  // If more than these retries are required, the mutator should trigger a
+  // crash.
+  int64 max_retries = 3;
+
+  // If a mutation takes more than this number of seconds, dump the algorithm
+  // to stdout for debugging. If set to 0.0, never dumps.
+  double dump_algorithm_secs = 4 [default = 0.0];
+}
+
+// A mutator that always crashes.
+message FailMutatorSpec {}

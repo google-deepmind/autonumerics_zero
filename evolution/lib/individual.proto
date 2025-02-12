@@ -1,0 +1,193 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution;
+
+option features.repeated_field_encoding = EXPANDED;
+option features.utf8_validation = NONE;
+
+// Data defining an individual and the results of its evaluation.
+message IndividualData {
+  // The IDs of this individual's parents.
+  repeated string parent_ids = 1;
+
+  // INTERNAL: filled by the experiment processing pipeline (see
+  // experiment_processing.py). Will not be present in Spanner DBs.
+  repeated int64 parent_indexes = 17;
+
+  // Serialized object representing the individual's DNA. Can also contain
+  // learned parameters and fitnesses. None of these are usable by any algorithm
+  // running in the server.
+  //
+  // The contents must be small enough to fit into an RPC and to not cause the
+  // server to run out of memory (the server must be able to simultaneously
+  // hold a number of these equal to the population size. Any data that is too
+  // large to store here can be stored the filename included in
+  // `associated_files` below. The maximum size S for this field should be such
+  // that the population in the server does not exceed available RAM in one
+  // machine, i.e. P * S < RAM. Also each Individual proto should be less than
+  // the maximum allowed RPC size. Typically, P < 1k and S < 1M should be fine.
+  bytes serialized = 2;  // Required
+
+  // Put here any files or dirs associated with this individual that contain
+  // data too big to include in the `serialized` field (e.g. large parameter
+  // checkpoints). The infra may rename or copy the files to guarantee their
+  // availability to the worker. All these will be garbage collected, so be
+  // careful when including dirs.
+  //
+  // REQUIREMENTS ON THE FILENAMES:
+  // When you create a new individual, it is required that the path to each
+  // associated file contain a ttl. The ttl should be longer than the duration
+  // of the experiment.
+  // The population server will garbage-collect the vast majority of
+  // these, but some escape due to preemptions--these are handled by the ttl.
+  //
+  // GUARANTEES ON AVAILABILITY:
+  // Once the worker downloads individuals through the population
+  // client's `Communicate` method, the files listed here are guaranteed to
+  // exist until the next call to retrieve individuals through `Communicate`.
+  repeated string associated_files = 8;
+
+  // A list of fitnesses, for one or more objectives. These can be used by
+  // server algorithms.
+  repeated double fitnesses = 3;
+
+  // A flag that the `fitnesses` are the parent's fitnesses and not this
+  // individual's. This trick is used in specialized occasions where individuals
+  // are selected in a worker tournament, and therefore the population is
+  // unevaluated. In those cases, the parent can be included in the metadata
+  // and its fitnesses copied here. This allows the server to sort individuals
+  // to be able to trim for spanner saving.
+  bool fitnesses_from_parent = 16 [default = false];
+
+  // DEPRECATED.
+  // A list of fitnesses from meta-validation. These are optional and not used
+  // during the search process. If not empty, should have the same size as
+  // `fitnesses`.
+  repeated double meta_valid_fitnesses = 11 [deprecated = true];
+
+  // A list of hashes of the function or structure of the individual. The
+  // exact details depend on the specifics of the project.
+  repeated bytes hashes = 9;
+
+  // How much this individual constributes to the progress of an experiment.
+  // This can be measured in number of individuals (i.e. 1), FLOPs (used to
+  // evaluate this individual), etc.
+  //
+  // The first element of this array is special because it's cumulative sum is
+  // considered to be the standard measure of "experiment time". That is, if
+  // individual_progress[0] is measured in FLOPs, then a point in the experiment
+  // will be indicated by how many FLOPs have passed since the beginning of the
+  // experiment. This is used to determine when to save checkpoints, for
+  // example.
+  repeated double individual_progress = 4;  // Required.
+
+  // An optional repeated field that describes how much progress a worker has
+  // made since the last time it contacted another remote server. The structure
+  // of this field is identical to that of individual_progress. If not present,
+  // the algorithm accumulates `individual_progress` instead.
+  //
+  // TODO(ikeviny): Instead of using Individual as a carrier for this data
+  // between the worker and the server, include as part of the RPC.
+  repeated double worker_progress = 5;  // Optional.
+
+  // Timestamp bounds on the information sent by the server that was used to
+  // create the current individual. For example, suppose this individual's DNA
+  // was the result of the crossover of 3 parents and these 3 parents were
+  // provided by the server in RPCs with timestamps T1, T2 and T3 (through the
+  // `server_time_nanos` field of the `SearchAlgorithmStats` included
+  // in the RPC). Suppose that T1 < T2 < T3. Then, set
+  // earliest_server_time_nanos = T1 and latest_server_time_nanos = T3. In case
+  // of a server preemption, this allows the server to determine if it has gone
+  // out of sync with the worker that evaluated this individual.
+  int64 earliest_algorithm_state_nanos = 6;  // Required.
+
+  int64 latest_algorithm_state_nanos = 7;  // Required.
+
+  // The timestampt of the earliest ancestor of this individual. This is used
+  // for bookkeeping necessary to reset the search process, so it is required
+  // if resetting is used.
+  //
+  // To set this:
+  // -If you are creating a seed individual (an individual with no parents),
+  //  use the current time;
+  // -If you are creating an individual by mutating one or more parents, copy
+  //  the earliest of the origin_nanos of the parents.
+  int64 origin_nanos = 13;
+
+  // Additional meta-data can be stored here using key-value pairs.
+  // The meta-data stored should be small, since they will be stored in spanner.
+  repeated StringKeyValuePair additional_meta_data = 10;
+  repeated BytesKeyValuePair additional_binary_meta_data = 12;
+
+  // Additional transient meta-data can be stored here using key-value pairs.
+  // Transient meta-data can be used in evolution, but will not be stored in
+  // spanner.
+  repeated BytesKeyValuePair additional_transient_binary_meta_data = 15;
+
+  // Set by infra if a server is signaling a global restart.
+  SearchRestartSignal search_restart_signal = 14;
+}
+
+// Key-Value pair of strings.
+message StringKeyValuePair {
+  string key = 1;  // Required.
+
+  string value = 2;  // Required.
+}
+
+message BytesKeyValuePair {
+  string key = 1;  // Required.
+
+  bytes value = 2;  // Required.
+}
+
+// Proto containing an individual (data and metadata).
+message Individual {
+  IndividualData data = 1;  // Required.
+
+  // A string ID uniquely identifying this individual. No commas allowed.
+  string individual_id = 2;  // Required.
+
+  // INTERNAL: filled by the experiment processing pipeline (see
+  // experiment_processing.py). Will not be present in Spanner DBs.
+  int64 individual_index = 8;
+
+  // The worker that evaluated this individual.
+  int64 worker_id = 4;  // Required.
+
+  // The worker collection ID. The worker that produced this individual belonged
+  // to this worker collection. Present only in runs.
+  int64 worker_collection_id = 5;
+
+  // A human-readable name that identifies the worker collection of the worker
+  // that produced this individual. Present only in runs.
+  string worker_collection_name = 6;
+
+  // The timestamp when this individual's evaluation was completed.
+  int64 time_nanos = 3;  // Required.
+
+  reserved 7;
+
+  reserved search_restart_signal;
+}
+
+// Signals a global restart. Contains the conditions under which any server
+// that receives this individual should restart.
+message SearchRestartSignal {
+  int64 restart_nanos = 1;  // Required.
+}

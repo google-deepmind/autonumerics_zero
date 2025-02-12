@@ -1,0 +1,44 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution;
+
+// Enums relevant to Server.
+message ServerEnums {
+  // Enum for server status.
+  enum Status {
+    option features.enum_type = CLOSED;
+
+    // The default value. This value is used if the status is omitted.
+    STATUS_UNSPECIFIED = 0;
+
+    // The server completed a requested action successfully.
+    SUCCEEDED = 1;
+
+    // The server had too many pending requests and couldn't handle this one.
+    // It's ok to retry later but if this happens a lot, probably need more
+    // servers or fewer workers.
+    BUSY = 2;
+
+    // The server rejected this uploads because a crash made it go out of sync
+    // with the worker. The worker needs to reset to a state aligned with the
+    // server. It is not ok to retry the uploads as they will keep getting
+    // rejected. When the uploads are rejected, any other components of the
+    // request (such as the downloads are ignored).
+    REJECTED = 3;
+  }
+}

@@ -1,0 +1,265 @@
+# Config for a simple local experiment.
+#
+# We set up a single worker that communicates through a client to a local
+# in-process server. This server runs an evolutionary algorithm.
+
+client_manager {
+  elements: {
+    # The client that talks to the server.
+    client_spec: {
+      connect_to_server_id: "pop"  # The name of the server.
+      rpc_deadline_secs: 1
+      min_delay_secs: 1
+      max_delay_secs: 2
+      max_retries: 1
+    }
+    # The server.
+    local_server_spec: {
+      server_id: "pop"  # The name of the server.
+      max_inactive_secs: 5
+      monitor_every_secs: 1
+      num_threads: 1
+      # The algorithm the server should run.
+      algorithm {
+        nsga2 {
+          stages { parent_population_size: 5 }
+          child_population_size: 10
+          use_elitism: false
+        }
+      }
+    }
+    weight: 1.0
+  }
+}
+
+# Above this line are infra-wide specifications, defined and implemented in
+# ../lib. The configuration above can be tuned to the project but no need
+# for changes to the code.
+# ------------------------------------------------------------------------------
+# Below this line are project-specific specifications, defined in
+# project_worker_spec.proto and implemented in run_worker.
+[brain.evolution.graphs.joy.JoyWorkerSpec.ext] {
+  simple_hasher {}
+  evaluator {
+    trainers {
+      cma {
+        jax_dataset {
+          general {
+            inputs_min: 0.0
+            inputs_max: 1.0
+            num_inputs: 1000
+            inputs_min_inclusive: true
+            inputs_max_inclusive: true
+            inputs_dtype: FLOAT32
+            ground_truth { exp2_float80 {} }
+            measure_ulp: true
+            relative_error_epsilon: 0.0
+          }
+        }
+        quality_fitness { minus_error {} }
+        init_scale: 1.0e-1
+        population_size: 128
+        generations: 10000
+        early_stopping {
+          required_fractional_improvement: 1.0e-100
+          min_iters: 100
+          max_no_improvement_iters_fraction: 0.5
+          asymptotic_value: 0.0
+          from_above: false
+        }
+      }
+    }
+    validator {
+      standard {
+        dataset {
+          fixed {
+            inputs_min: 0.0
+            inputs_max: 1.0
+            num_inputs: 10000
+            inputs_min_inclusive: true
+            inputs_max_inclusive: true
+            inputs_dtype: FLOAT32
+            ground_truth { exp2_float80 {} }
+            measure_ulp: true
+            relative_error_epsilon: 0.0
+          }
+        }
+        quality_fitness { minus_error {} }
+      }
+    }
+    cost_estimator {
+      wall_clock {
+        dataset_dtype: FLOAT32
+        budget_seconds: 0.0001
+        dataset_size: 10000
+        min_num_repeats: 1000
+        reference_cost_type: NONE
+        min_cost: 0.0
+        dataset_min: 0.1
+        dataset_max: 0.9
+        jax_while_stack {
+          depth: 100
+          min_value: 0.1
+          max_value: 0.9
+        }
+      }
+    }
+    no_objective_postprocessing {}
+  }
+  evolver {
+    init_population_size: 10
+    generator {
+      random_generator {
+        required_input_vertex_op_ids: ["ProduceXOp"]
+        required_output_vertex_op_ids: ["ConsumeFOp"]
+        allowed_op_ids: [
+          "PositiveScale8NonAnchoredVariableOp",
+          "NegativeScale8NonAnchoredVariableOp",
+          "AddOp",
+          "SubOp",
+          "MultOp",
+          "DivOp"
+        ]
+        num_vertices: 2
+        max_attempts: 1000000
+        connected_only: true
+      }
+    }  # generator
+    identity_rate: 0.5
+    experiment_size: 1000000000000
+    report_every_secs: 10
+    report_over_last: 10
+    verbose: false
+  }
+  custom_mutator {
+    retry_until_functional_change_mutator {
+      accumulate_mutations: true
+      max_retries: 1000000
+      mutator {
+        [brain.evolution.graphs.joy.CustomMutatorSpec.ext] {
+          # Let G0 and G1 be the parents. Based on their sizes, we choose
+          # among the following possible options:
+          # (B) mutating G0 with vertex insertion;
+          # (C) mutating G0 with vertex removal;
+          # (D) mutating G0 with edge switch; or
+          size_dependent_mutator {
+            # If size(G0) == 2:
+            # -mutate G0 with insertion.
+            rules {
+              condition {
+                first_max_size: 3
+              }
+              mutator {
+                [brain.evolution.graphs.joy.CustomMutatorSpec.ext] {
+                  insert_vertex_mutator {
+                    allowed_op_ids: [
+                      "PositiveScale8NonAnchoredVariableOp",
+                      "NegativeScale8NonAnchoredVariableOp",
+                      "AddOp",
+                      "SubOp",
+                      "MultOp",
+                      "DivOp"
+                    ]
+                    max_num_vertices: 100
+                    log_mutation_id: true
+                  }
+                }
+              }
+            }
+            # If 2 < size(G0) < 100, choose between:
+            # -mutate G0 with insertion;
+            # -mutate G0 with removal;
+            # -mutate G0 with edge switch; or
+            rules {
+              condition {
+                first_min_size: 3
+                first_max_size: 100
+              }
+              mutator {
+                random_choice_mutator {
+                  elements {
+                    # Insert vertex.
+                    mutator {
+                      [brain.evolution.graphs.joy.CustomMutatorSpec.ext] {
+                        insert_vertex_mutator {
+                          allowed_op_ids: [
+                            "PositiveScale8NonAnchoredVariableOp",
+                            "NegativeScale8NonAnchoredVariableOp",
+                            "AddOp",
+                            "SubOp",
+                            "MultOp",
+                            "DivOp"
+                          ]
+                          max_num_vertices: 100
+                          log_mutation_id: true
+                        }
+                      }
+                    }
+                    weight: 1.0
+                  }
+                  elements {
+                    # Remove vertex.
+                    mutator {
+                      [brain.evolution.graphs.joy.CustomMutatorSpec.ext] {
+                        remove_vertex_mutator {
+                          min_num_vertices: 2
+                          log_mutation_id: true
+                        }
+                      }
+                    }
+                    weight: 2.0
+                  }
+                  elements {
+                    # Switch edge.
+                    mutator {
+                      edge_mutator {
+                        num_edges_to_replace: 1
+                        connected_only: true
+                      }
+                    }
+                    weight: 3.0
+                  }
+                }  # random_choice_mutator
+              }
+            }
+            # If size(G0) == 100, choose between:
+            # -mutate G0 with vertex removal;
+            # -mutate G0 with edge switch; or
+            rules {
+              condition {
+                first_min_size: 100
+              }
+              mutator {
+                random_choice_mutator {
+                  elements {
+                    # Remove vertex.
+                    mutator {
+                      [brain.evolution.graphs.joy.CustomMutatorSpec.ext] {
+                        remove_vertex_mutator {
+                          min_num_vertices: 2
+                          log_mutation_id: true
+                        }
+                      }
+                    }
+                    weight: 1.0
+                  }
+                  elements {
+                    # Switch edge.
+                    mutator {
+                      edge_mutator {
+                        num_edges_to_replace: 1
+                        connected_only: true
+                      }
+                    }
+                    weight: 1.0
+                  }
+                }  # random_choice_mutator
+              }
+            }
+            fallback_mutator { fail_mutator {} }  # Should never get here.
+          }
+        }
+      }
+    }  # retry_until_functional_change_mutator
+  }  # custom_mutator
+}

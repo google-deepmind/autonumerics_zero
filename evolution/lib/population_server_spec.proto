@@ -1,0 +1,62 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution;
+
+import "evolution/lib/search_algorithm_spec.proto";
+
+option features.utf8_validation = NONE;
+
+// Specification for the behavior of the evolution server.
+message PopulationServerSpec {
+  // A short ID for this server.
+  string server_id = 1;  // Required.
+
+  // If the server does not receive any RPCs in this many seconds, it will
+  // automatically shut down. 0 disables the automatic shutdown.
+  int64 max_inactive_secs = 3 [default = 1000000];
+
+  // How frequently the monitoring thread prints progress and checks for
+  // shutdown conditions.
+  int64 monitor_every_secs = 4 [default = 60];
+
+  // If more than these many requests get enqueued, the server will reject
+  // requests with a `BUSY` error. Non-positive means no limit.
+  int64 max_pending_requests = 5 [default = 10000];
+
+  // Number of threads to use to serve requests.
+  int64 num_threads = 6 [default = 1000];
+
+  // Algorithm to use.
+  SearchAlgorithmSpec algorithm = 7;  // Required.
+
+  // Periodically logs details about the state of the server.
+  bool verbose_monitor = 9 [default = false];
+
+  // The priority of this server, if it is a remote server. If this is a
+  // local server, this value is ignored (as it will run in the same machine as
+  // a worker and therefore the worker's priority will apply).
+  //
+  // Note that an experiment can only start a small number of machines with
+  // priority larger than 100. Typically, the only the population server(s) are
+  // run at high priority (200), but if you only start a handful of remote
+  // historical fitness servers, then they can run at high priority too.
+  //
+  // If running at priority 100, it is critical that this server be
+  // checkpointed (i.e. the `checkpointer` field must be set).
+  int64 priority = 16 [default = 200];
+}

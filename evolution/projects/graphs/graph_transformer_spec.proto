@@ -1,0 +1,66 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// Graph transformer specification.
+
+edition = "2023";
+
+package brain.evolution.graphs;
+
+message GraphTransformerSpec {
+  oneof graph_transformer_type {
+    FollowedGraphTransformerSpec followed = 1;
+    ContinuedGraphTransformerSpec continued = 2;
+    SequenceGraphTransformerSpec sequence = 3;
+  }
+}
+
+// Specification for a `FollowedGraphTransformer` instance.
+//
+// This transformer takes its input graph G and produces H(x, G(x)), where
+// H is a fixed graph.
+message FollowedGraphTransformerSpec {
+  // The graph H in the description above, in pastable form.
+  bytes following_graph = 1;  // Required.
+}
+
+// Specification for a `ContinuedGraphTransformer` instance.
+//
+// This transformer takes its input graph G(x, y) and produces the continued
+// graph G^D(x) defined by:
+//   G^D(x) = G(x, G(x, G(x, ... G(x, R)))),
+// where G appears D times on the RHS. The graph must have two required inputs
+// and one required output. R is a fixed "root" graph. It must have no
+// required inputs and one required output.
+message ContinuedGraphTransformerSpec {
+  // The maximum number of vertices in the output graph. The value D in the
+  // description above will be as large as possible, subject to this constraint.
+  int64 max_num_vertices = 1;  // Required.
+
+  // The graph R in the description above, in pastable form.
+  bytes root_graph = 2;  // Required.
+
+  // Whether to prune the G before stacking it. Affects the value D (i.e. if
+  // pruned, a smaller G is stacked, so D can be larger).
+  bool prune = 3 [default = false];
+}
+
+// Specification for a `SequenceGraphTransformer` instance.
+//
+// This transformer applies a sequence of transformers in succession.
+message SequenceGraphTransformerSpec {
+  // Must be non-empty.
+  repeated GraphTransformerSpec graph_transformers = 1;
+}

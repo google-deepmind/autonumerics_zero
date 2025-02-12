@@ -1,0 +1,92 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// The spec for the evaluator of individuals in this toy project.
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+import "evolution/projects/graphs/graph_spec.proto";
+import "evolution/projects/graphs/joy/data.proto";
+
+option features.repeated_field_encoding = EXPANDED;
+option features.utf8_validation = NONE;
+
+message EvalMetadataProto {
+  repeated int64 init_jnp_key = 1;
+  repeated int64 train_jnp_key = 2;
+  repeated int64 valid_jnp_key = 3;
+  repeated int64 finetune_jnp_key = 4;
+
+  // Used to disambiguate `{}` and `None` for the learnable_params field of the
+  // EvalMetadata class. Required in new code. Default value is for backward
+  // compatibility.
+  bool initialized_learnable_params = 9 [default = true];
+
+  repeated LearnableParamsProto learnable_params = 5;
+  repeated FingerprintProto fingerprints = 6;
+
+  // Including parents is optional. It can be useful for analysis. It can also
+  // be useful for checking progress when the server population is unevaluated
+  // so that the only evaluated individuals are the parents (this happens with
+  // the TournamentEvolver). It is up to the evolver whether this is stored.
+  repeated ParentInfo parents_info = 8;
+
+  // Unset means unknown.
+  bool is_seed = 10;
+  bool is_clone = 11;
+
+  // Unset means not yet measured.
+  double precision_fitness = 12;
+  double speed_fitness = 13;
+
+  // The mutation ID of the parent. Unset means unknown.
+  string mutation_id = 14;
+  double rough_speed = 7 [deprecated = true];
+}
+
+message LearnableParamsProto {
+  string vertex_id = 1;  // Required.
+
+  bytes serialized = 2;  // Required.
+}
+
+message FingerprintProto {
+  // The ID of the vertex for which `values` is the fingerprint.
+  string vertex_id = 1;  // Required.
+
+  // The JAX dtype of `values`.
+  FloatDTypeSpec dtype = 2;  // Required.
+
+  // The fingerprint values produced by the fingerprinter.
+  repeated double fingerprint = 3;  // Required.
+}
+
+// Contains information about a parent.
+message ParentInfo {
+  string individual_id = 1;  // Required.
+
+  int64 time_nanos = 2;  // Required.
+
+  // The parent's graph.
+  GraphProto graph = 3;  // Required.
+
+  repeated double fitnesses = 4;  // Must be non-empty.
+
+  // The parent's eval metadata. The `parents` field must be emptied before
+  // storing here to avoid recursion.
+  EvalMetadataProto eval_metadata = 5;  // Required.
+}

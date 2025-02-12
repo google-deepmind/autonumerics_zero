@@ -1,0 +1,129 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// Generator specification.
+
+edition = "2023";
+
+package brain.evolution.graphs;
+
+import "evolution/projects/graphs/generators_spec.proto";
+import "evolution/projects/graphs/mutators_spec.proto";
+
+// Specification for a `GraphEvolver` instance.
+//
+// The evolver gradually discovers graphs to suit a given evaluation function
+// within a given search space. The evaluation function is provided externally
+// through the Evaluator class (passed to the GraphEvolver through its
+// constructor). The search space is provided externally by defining a set of
+// ops (subclassing InputOp, TransformOp and OutputOp) and specifying an
+// allowed list in the GraphEvolverSpec below.
+//
+// The GraphEvolver class is aware of the graph structure so it can generate and
+// mutate models on its own. In particular, it can tell if a type of a vertex is
+// the same as the type of another. However, by design, it is completely unaware
+// of the meaning of each type and of how the graph is executed. This way it can
+// be shared among multiple projects. If you need to break this paradigm, please
+// branch this class and this spec into your subdirectory of
+// evolution/projects/graph.
+message GraphEvolverSpec {
+  // The number of random individuals with which to seed the population.
+  int64 init_population_size = 1;  // Required.
+
+  // The generator will be used to form the initial population.
+  GeneratorSpec generator = 2;  // Required.
+
+  // The mutator will be used to generate variability for selection.
+  // Must either specify this or pass a custom mutator to the GraphEvolver's
+  // constructor, but not both.
+  MutatorSpec mutator = 3;
+
+  // Fraction of children that will be identical to one of the parents.
+  // That is, recombination and mutation are bypassed.
+  double identity_rate = 7;  // Required.
+
+  // If set, uses FEC. This requires a hasher to be defined.
+  GraphFecSpec fec = 14;
+
+  // The number of individuals to be evaluated during the whole experiment.
+  int64 experiment_size = 4;  // Required.
+
+  // Every how many seconds to report to the logs.
+  double report_every_secs = 5;  // Required.
+
+  // When reporting stats, it will consider the last `report_over_last`
+  // individuals.
+  int64 report_over_last = 6;  // Required.
+
+  bool verbose = 8 [default = false];
+
+  // If set will run meta-validation. You must also pass the Evolver a
+  // MetaValidator subclass instance.
+  MetaValidationSpec meta_validation = 9;
+}
+
+message MetaValidationSpec {
+  bool enable_spanner = 1 [default = true];
+
+  // Best to choose low-number workers in case there is congestion.
+  int64 worker_id = 2 [default = 0];
+}
+
+// FEC specification. Requires passing a Hasher object and a historical server
+// to the evolver.
+message GraphFecSpec {
+  oneof usage_type {
+    // Uses the FE hash for caching purposes. This is the standard FEC.
+    GraphCachingSpec caching = 2;
+
+    // Allows aggregation of evaluations.
+    GraphAggregationSpec aggregation = 3;
+
+    // Uses the hash to do a counterfactual FEC evaluation for the purposes of
+    // evaluating the quality of the hash. Normally, don't set this.
+    GraphFecCounterfactualSpec counterfactual = 4;
+  }
+}
+
+// The standard FEC. This option guarantees that the latest value in the cache
+// will be retrieved when there is a cache hit.
+message GraphCachingSpec {}
+
+// Thiis aggregates values in the cache to return their mean.
+message GraphAggregationSpec {
+  // The target maximum number of evaluation repeats to aggregate over. Must be
+  // positive. The more repeats, the more accurate the evaluations become but
+  // the more time it may take to get there. This is not a hard max due to
+  // worker-concurrency; e.g. if this is 1 it will typically behave like
+  // FEC but will occasionally average more than 1 value.
+  int64 max_num_repeats = 1 [default = 1];
+
+  // If true, when r evaluations have been made, the current evaluation
+  // will only take place with probability 1/r.
+  bool one_over_r_decay = 2 [default = false];
+}
+
+// FEC counterfactual provides a way to estimate the quality of a hashing
+// function. With this, evolution proceeds as if FEC were not run. However, it
+// still updates the cache, even though evalutions will take place even upon
+// cache hits. Cached values are used to compare to the new evaluations to
+// measure whether a cache collision took place. We define a collision as two
+// evaluations with different fitnesses but the same cache key.
+//
+// Aggregated measurements are printed to the STDOUT log periodically. Look for
+// the string "FecEvaluation measurements".
+message GraphFecCounterfactualSpec {
+  double epsilon = 1;  // Required.
+}

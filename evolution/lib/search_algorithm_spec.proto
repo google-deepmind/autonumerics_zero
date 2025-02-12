@@ -1,0 +1,79 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution;
+
+import "evolution/lib/nsga2_search_algorithm_spec.proto";
+import "evolution/lib/random_search_algorithm_spec.proto";
+
+option features.repeated_field_encoding = EXPANDED;
+
+message SearchAlgorithmSpec {
+  // The algorithm to use for evolution.
+  oneof algorithm_type {
+    Nsga2SearchAlgorithmSpec nsga2 = 3;
+    RandomSearchAlgorithmSpec random = 10;
+  }
+
+  // If set, the search will restart automatically if no improvement takes
+  // place in a while. The `algorithm_type` used above must support restarts.
+  SearchRestartIfNoImprovementSpec search_restart_if_no_improvement = 8;
+
+  // Each of these represents a hurdle that must be passed for the experiment
+  // to continue. Otherwise, it restarts. Can be empty.
+  repeated SearchRestartHurdle search_restart_hurdles = 9;
+}
+
+// A restart policy that triggers if the maximum fitness has not seen an
+// improvement in a given amount of time.
+message SearchRestartIfNoImprovementSpec {
+  // Which of the fitnesses to consider. See `fitnesses` in the
+  // `Individual` proto.
+  int64 fitness_index = 1 [default = 0];
+
+  // Which of the progress metrics to consider (i.e. what do we mean by "time").
+  // See `experiment_progress` in the `Individual` proto.
+  int64 experiment_progress_index = 2 [default = 0];
+
+  // If the maximum seen of the fitness indicated by `fitness_index` does not
+  // improve in this much "time", an experiment restart will be triggered. This
+  // "time" is measured in the experiment progress indicated by
+  // `experiment_progress_index`.
+  double max_wait = 3;  // Required.
+}
+
+// A restart policy that triggers if the given fitness value has not been
+// reached by the given experiment time.
+message SearchRestartHurdle {
+  // Which of the fitnesses to consider. See `fitnesses` in the
+  // `Individual` proto.
+  repeated int64 fitness_indexes = 1;  // Required
+
+  // Which of the progress metrics to consider (i.e. what do we mean by "time").
+  // See `experiment_progress` in the `Individual` proto.
+  int64 experiment_progress_index = 2 [default = 0];
+
+  // Will restart if the `desired_fitnesses` are not reached by the
+  // `experiment_progress` time. Note that all fitnesses must pass their
+  // respective hurdle. That is:
+  //     fitnesses[fitness_indexes[i]] > desired_fitnesses[i]
+  // for all `i`. `desired_fitnesses` must have the same length as
+  // `fitness_indexes`.
+  double experiment_progress = 3;  // Required.
+
+  repeated double desired_fitnesses = 4;  // Required.
+}

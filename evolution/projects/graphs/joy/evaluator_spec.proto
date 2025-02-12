@@ -1,0 +1,74 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// The spec for the evaluator of individuals in this toy project.
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+import "evolution/projects/graphs/graph_transformer_spec.proto";
+import "evolution/projects/graphs/joy/constant_vertex_collapser_spec.proto";
+import "evolution/projects/graphs/joy/cost_estimator_spec.proto";
+import "evolution/projects/graphs/joy/evaluator_util.proto";
+import "evolution/projects/graphs/joy/fingerprinter_spec.proto";
+import "evolution/projects/graphs/joy/trainer_spec.proto";
+import "evolution/projects/graphs/joy/validator_spec.proto";
+
+// An evaluator that produces the fitness(es) for a given graph.
+message JoyEvaluatorSpec {
+  // If set, will transform the graph before evaluating it.
+  GraphTransformerSpec graph_transformer = 11;
+
+  // Training is optional. If set, will learn the coefficients.
+  repeated TrainerSpec trainers = 1;
+
+  // Validation measures quality objectives.
+  ValidatorSpec validator = 2;  // Required.
+
+  // An optional objective to optimize cost, in addition to quality. The
+  // additional objective is appended to the base objective (correctness),
+  // creating a list of fitnesses. If not set, no cost objective will be
+  // optimized and a single-objective algorithm must be used. If set, a
+  // multi-objective search algorithm must be used.
+  CostEstimatorSpec cost_estimator = 5;
+
+  // A fingerprinter marks each vertex with a functional fingerprint that gets
+  // stored in the evaluation metadata. This is required for some kinds of
+  // recombination. If not set, fingerprints are not computed.
+  FingerprinterSpec fingerprinter = 4;
+
+  // Post-processes the objectives to come up with the fitnesses that the
+  // evolutionary search will use. Depending on the choice, the number of
+  // fitnessses may be the same or different from the number of objectives.
+  oneof objective_postprocessing {
+    NoObjectivePostprocessing no_objective_postprocessing = 6;
+    ReduceStratifiedObjectivePostprocessing
+        reduce_stratified_objective_postprocessing = 7;
+  }
+
+  bool verbose = 8 [default = false];
+
+  // An optional delay to add to each evaluation. Used to study effects of
+  // asynchronous population updates. In seconds.
+  double delay = 9 [default = 0.0];
+
+  // If set, collapses constants before evaluating. This may make the graph
+  // and it's metadata go out of sync because the constant collapsing process
+  // affects the graph used for evaluation (and therefore affects the metadata,
+  // like the learnable parameters) but not the graph used for evolution. This
+  // must be considered when analyzing the results.
+  ConstantVertexCollapserSpec constant_vertex_collapser = 10;
+}

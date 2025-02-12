@@ -1,0 +1,317 @@
+# Base code for evolving typed-graphs.
+
+load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:proto.bzl", "py_proto_library")
+
+package(default_visibility = ["//visibility:public"])
+
+py_library(
+    name = "evaluator_interface",
+    srcs = ["evaluator_interface.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":graph",
+        ":learnable_params",
+    ],
+)
+
+py_library(
+    name = "generators",
+    srcs = ["generators.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":generators_spec_py_pb2",
+        ":graph",
+        ":topology",
+        requirement("numpy"),
+    ],
+)
+
+proto_library(
+    name = "generators_spec_proto",
+    srcs = ["generators_spec.proto"],
+    deps = [":graph_spec_proto"],
+)
+
+py_proto_library(
+    name = "generators_spec_py_pb2",
+    deps = [
+        ":generators_spec_proto",
+    ],
+)
+
+py_library(
+    name = "graph",
+    srcs = ["graph.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":graph_spec_py_pb2",
+        ":learnable_params",
+        ":op",
+        ":type",
+        "//evolution/lib/python:printing",
+        requirement("jax"),
+        requirement("pydot"),
+    ],
+)
+
+py_library(
+    name = "graph_analysis",
+    srcs_version = "PY3",
+)
+
+py_library(
+    name = "graph_evolver",
+    srcs = ["graph_evolver.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":evaluator_interface",
+        ":generators",
+        ":graph",
+        ":graph_evolver_spec_py_pb2",
+        ":hasher_interface",
+        ":meta_validator_interface",
+        ":metadata_util",
+        ":mutators",
+        "//evolution/lib:individual_py_pb2",
+        "//evolution/lib:population_client_manager_spec_py_pb2",
+        "//evolution/lib:search_algorithm_stats_py_pb2",
+        "//evolution/lib/python:log_tracker",
+        "//evolution/lib/python:population_client_manager",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        "//evolution/lib/python:timed_measurement",
+        requirement("numpy"),
+    ],
+)
+
+proto_library(
+    name = "graph_evolver_spec_proto",
+    srcs = ["graph_evolver_spec.proto"],
+    deps = [
+        ":generators_spec_proto",
+        ":mutators_spec_proto",
+    ],
+)
+
+py_proto_library(
+    name = "graph_evolver_spec_py_pb2",
+    deps = [":graph_evolver_spec_proto"],
+)
+
+py_library(
+    name = "graph_evolver_test_util",
+    testonly = True,
+    srcs = ["graph_evolver_test_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":evaluator_interface",
+        ":graph",
+        ":learnable_params",
+        "//evolution/lib/python:rng",
+    ],
+)
+
+py_library(
+    name = "graph_manipulation",
+    srcs = ["graph_manipulation.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//evolution/projects/graphs:graph",
+    ],
+)
+
+proto_library(
+    name = "graph_spec_proto",
+    srcs = ["graph_spec.proto"],
+)
+
+py_proto_library(
+    name = "graph_spec_py_pb2",
+    deps = [":graph_spec_proto"],
+)
+
+py_library(
+    name = "graph_test_util",
+    testonly = True,
+    srcs = ["graph_test_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":graph",
+    ],
+)
+
+py_library(
+    name = "graph_transformer",
+    srcs = ["graph_transformer.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":graph",
+        ":graph_manipulation",
+        ":graph_transformer_spec_py_pb2",
+        "//evolution/lib/python:pastable",
+    ],
+)
+
+proto_library(
+    name = "graph_transformer_spec_proto",
+    srcs = ["graph_transformer_spec.proto"],
+)
+
+py_proto_library(
+    name = "graph_transformer_spec_py_pb2",
+    deps = [
+        ":graph_transformer_spec_proto",
+    ],
+)
+
+py_library(
+    name = "hasher_interface",
+    srcs = ["hasher_interface.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//evolution/projects/graphs:graph",
+    ],
+)
+
+py_library(
+    name = "hasher_test_util",
+    testonly = 1,
+    srcs = ["hasher_test_util.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":graph",
+        ":hasher_interface",
+    ],
+)
+
+py_library(
+    name = "learnable_params",
+    srcs = ["learnable_params.py"],
+    srcs_version = "PY3",
+)
+
+py_library(
+    name = "matching",
+    srcs = ["matching.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":graph",
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "metadata_util",
+    srcs = ["metadata_util.py"],
+    srcs_version = "PY3",
+    deps = ["//evolution/lib:individual_py_pb2"],
+)
+
+py_library(
+    name = "meta_validator_interface",
+    srcs = ["meta_validator_interface.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":graph",
+        "//evolution/lib:individual_py_pb2",
+        "//evolution/lib:meta_validation_py_pb2",
+    ],
+)
+
+py_library(
+    name = "mutators",
+    srcs = ["mutators.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":generators",
+        ":graph",
+        ":hasher_interface",
+        ":mutators_spec_py_pb2",
+        ":op",
+        ":topology",
+        "//evolution/lib:search_algorithm_stats_py_pb2",
+        "//evolution/lib/python:pastable",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:timed_measurement",
+        requirement("numpy"),
+    ],
+)
+
+proto_library(
+    name = "mutators_spec_proto",
+    srcs = ["mutators_spec.proto"],
+)
+
+py_proto_library(
+    name = "mutators_spec_py_pb2",
+    deps = [":mutators_spec_proto"],
+)
+
+py_library(
+    name = "op",
+    srcs = ["op.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":learnable_params",
+        ":type",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "topology",
+    srcs = ["topology.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":graph",
+        ":op",
+        "//evolution/lib/python:printing",
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "toy_search_space",
+    testonly = True,
+    srcs = ["toy_search_space.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":graph",
+        ":op",
+        ":type",
+        requirement("jax"),
+        requirement("numpy"),
+    ],
+)
+
+py_library(
+    name = "type",
+    srcs = ["type.py"],
+    srcs_version = "PY3",
+    deps = [
+        requirement("numpy"),
+    ],
+)
+
+py_library(name = "generators_multitype")
+
+py_library(
+    name = "custom_mutators2",
+    srcs = ["custom_mutators2.py"],
+    deps = [
+        ":graph",
+        ":mutators",
+        ":mutators_spec_py_pb2",
+        ":op",
+        ":topology",
+        "//evolution/lib/python:printing",
+        "//evolution/lib/python:rng",
+        "//evolution/projects/graphs/joy:custom_mutators_spec_py_pb2",
+        "//evolution/projects/graphs/joy:data",
+        "//evolution/projects/graphs/joy:eval_metadata",
+        requirement("numpy"),
+        requirement("jax"),
+    ],
+)

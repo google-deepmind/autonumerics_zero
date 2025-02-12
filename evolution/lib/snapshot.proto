@@ -1,0 +1,62 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+edition = "2023";
+
+package brain.evolution;
+
+import "evolution/lib/individual.proto";
+import "evolution/lib/search_algorithm_stats.proto";
+
+option features.utf8_validation = NONE;
+
+// A snapshot of the population.
+message Snapshot {
+  // The ID of the server that wrote this snapshot.
+  string server_id = 1;  // Required.
+
+  // A string ID uniquely identifying this snapshot.
+  string snapshot_id = 2;  // Required.
+
+  // Cumulative stats at the time this snapshot was created.
+  SearchAlgorithmStats stats = 3;  // Required.
+
+  // May not contain all the individuals. This depends on the specification for
+  // how the snapshot was to be taken.
+  repeated Individual individuals = 4;
+
+  // Stats about the current population.
+  // Only populated if population is non-empty.
+  CurrentPopulationStats current_population_stats = 5;
+}
+
+// Stats about the current population.
+message CurrentPopulationStats {
+  // Max fitnesses for each dimension.
+  repeated double max_fitnesses = 1;
+
+  // Mean fitnesses for each dimension.
+  repeated double mean_fitnesses = 2;
+
+  // Min fitnesses for each dimension.
+  repeated double min_fitnesses = 3;
+
+  // For each Individual.data.hashes[] dimension, the hash that occurs the most.
+  // Ties are broken arbitrarily.
+  repeated bytes mode_hash = 4;
+
+  // How many times `mode_hash` occurs in the population.
+  repeated int64 mode_count = 5;
+}

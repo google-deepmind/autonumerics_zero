@@ -1,0 +1,64 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
+// The spec for the CmaTrainer.
+
+edition = "2023";
+
+package brain.evolution.graphs.joy;
+
+import "evolution/projects/graphs/joy/early_stopping_spec.proto";
+import "evolution/projects/graphs/joy/error_util.proto";
+import "evolution/projects/graphs/joy/jax_dataset_spec.proto";
+
+// Searches for the coefficients using CMA-ES. The function evaluation is in
+// the dtype of the input data. Error and evolutionary computations are done in
+// float64.
+message CmaTrainerSpec {
+  // A validator to use to evaluate each sample (of parameters).
+  JaxDatasetSpec jax_dataset = 1;  // Required.
+
+  QualityFitnessSpec quality_fitness = 2;  // Required.
+
+  // The maximum number of iterations.
+  int64 generations = 3;  // Required.
+
+  // The population size.
+  int64 population_size = 4;  // Required.
+
+  // The scale of the initial mutation size. Scales the covariance matrix.
+  float init_scale = 5;  // Required.
+
+  // If one is set, early stopping is used.
+  oneof early_stopper_type {
+    CmaEarlyStopperSpec early_stopper = 6;  // TO BE DEPRECATED.
+
+    EarlyStoppingSpec early_stopping = 7;
+  }
+}
+
+// TO BE DEPRECATED.
+message CmaEarlyStopperSpec {
+  // The amount of improvement necessary to prevent early stopping.
+  double required_improvement = 1;  // Required.
+
+  // The minimum number of iterations before early stopping can be triggered.
+  int64 min_iters = 2;  // Required.
+
+  // Given an allowed_idle_iters_fraction F and a current number of
+  // itereations K, if no improvement was seen in the last F * K iterations,
+  // early stopping is triggered.
+  double allowed_idle_iters_fraction = 3;  // Required.
+}
